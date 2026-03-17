@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_tiktok_video_upload_tree" model="ir.ui.view">
+        <field name="name">tiktok.video.upload.tree</field>
+        <field name="model">tiktok.video.upload</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <field name="video_filename"/>
+                <field name="state"/>
+                <field name="tiktok_video_id"/>
+                <field name="create_date"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_tiktok_video_upload_form" model="ir.ui.view">
+        <field name="name">tiktok.video.upload.form</field>
+        <field name="model">tiktok.video.upload</field>
+        <field name="arch" type="xml">
+            <form string="TikTok Video Upload">
+                <header>
+                    <button name="action_upload_to_tiktok" type="object" string="Upload to TikTok" class="btn-primary" invisible="state == 'uploaded'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,uploaded,failed"/>
+                </header>
+                <sheet>
+                    <group>
+                        <field name="name" readonly="1"/>
+                        <field name="video_file" filename="video_filename"/>
+                        <field name="video_filename"/>
+                        <field name="description"/>
+                        <field name="privacy_level"/>
+                    </group>
+                    <group string="TikTok Response">
+                        <field name="tiktok_video_id" readonly="1"/>
+                        <field name="error_message" readonly="1"/>
+                        <field name="response_body" readonly="1"/>
+                    </group>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_tiktok_video_upload" model="ir.actions.act_window">
+        <field name="name">TikTok Video Uploads</field>
+        <field name="res_model">tiktok.video.upload</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <menuitem id="menu_tiktok_video_root" name="TikTok" sequence="50"/>
+    <menuitem id="menu_tiktok_video_upload" name="Video Uploads" parent="menu_tiktok_video_root" action="action_tiktok_video_upload" sequence="10"/>
+</odoo>
