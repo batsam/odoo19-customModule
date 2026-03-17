@@ -7,6 +7,29 @@
         <field name="arch" type="xml">
             <xpath expr="//form" position="inside">
                 <app string="TikTok" name="tiktok_video_uploader" groups="base.group_system">
+                    <block title="TikTok OAuth">
+                        <setting string="TikTok Client Key">
+                            <field name="tiktok_client_key"/>
+                        </setting>
+                        <setting string="TikTok Client Secret" help="Stored securely in system parameters">
+                            <field name="tiktok_client_secret" password="True"/>
+                        </setting>
+                        <setting string="TikTok Redirect URI" help="Must match your TikTok app exactly, e.g. https://your-ngrok-domain/tiktok/callback">
+                            <field name="tiktok_redirect_uri"/>
+                        </setting>
+                        <setting string="TikTok OAuth Scopes" help="Comma-separated scopes required by your TikTok app">
+                            <field name="tiktok_scopes"/>
+                        </setting>
+                        <setting string="Authorize Endpoint">
+                            <field name="tiktok_authorize_endpoint"/>
+                        </setting>
+                        <setting string="Token Endpoint">
+                            <field name="tiktok_token_endpoint"/>
+                        </setting>
+                        <setting string="One-click Connect" help="Starts OAuth login and stores the returned access token automatically">
+                            <button name="action_tiktok_connect" type="object" string="Connect TikTok" class="btn-primary"/>
+                        </setting>
+                    </block>
                     <block title="TikTok API">
                         <setting string="TikTok Access Token" help="OAuth access token with video publish permission">
                             <field name="tiktok_access_token" password="True"/>
