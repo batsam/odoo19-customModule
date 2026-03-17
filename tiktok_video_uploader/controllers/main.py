@@ -40,7 +40,7 @@ class TikTokOAuthController(http.Controller):
                 'state': state,
             }
         )
-        return request.redirect(f'{authorize_endpoint}?{query}')
+        return request.redirect(f'{authorize_endpoint}?{query}', local=False)
 
     @http.route('/tiktok/callback', type='http', auth='public', methods=['GET'], csrf=False)
     def tiktok_callback(self, code=None, state=None, error=None, error_description=None, **kwargs):
