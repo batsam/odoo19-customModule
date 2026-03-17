@@ -1,4 +1,5 @@
 import base64
+import json
 
 import requests
 
@@ -50,7 +51,7 @@ class TikTokVideoUpload(models.Model):
             raise UserError(_('Please attach a video file before uploading.'))
 
         access_token = self.env['ir.config_parameter'].sudo().get_param('tiktok_video_uploader.access_token')
-        upload_url = self.env['ir.config_parameter'].sudo().get_param(
+        init_endpoint = self.env['ir.config_parameter'].sudo().get_param(
             'tiktok_video_uploader.upload_endpoint',
             default='https://open.tiktokapis.com/v2/post/publish/video/init/',
         )
@@ -59,44 +60,76 @@ class TikTokVideoUpload(models.Model):
             raise UserError(_('Please configure TikTok Access Token in Settings.'))
 
         file_name = self.video_filename or f'{self.name}.mp4'
-        payload = {
-            'description': self.description or '',
-            'privacy_level': self.privacy_level,
+        video_bytes = base64.b64decode(self.video_file)
+        video_size = len(video_bytes)
+
+        init_payload = {
+            'post_info': {
+                'title': self.description or file_name,
+                'privacy_level': self.privacy_level,
+                'disable_duet': False,
+                'disable_comment': False,
+                'disable_stitch': False,
+            },
+            'source_info': {
+                'source': 'FILE_UPLOAD',
+                'video_size': video_size,
+                'chunk_size': video_size,
+                'total_chunk_count': 1,
+            },
         }
 
         try:
-            response = requests.post(
-                upload_url,
+            init_response = requests.post(
+                init_endpoint,
                 headers={
                     'Authorization': f'Bearer {access_token}',
+                    'Content-Type': 'application/json; charset=UTF-8',
                 },
-                data=payload,
-                files={
-                    'video': (file_name, base64.b64decode(self.video_file), 'video/mp4'),
-                },
+                data=json.dumps(init_payload),
                 timeout=120,
             )
-            response.raise_for_status()
-            response_json = response.json()
+            init_response.raise_for_status()
+            init_json = init_response.json()
+
+            data = init_json.get('data', {})
+            upload_url = data.get('upload_url')
+            publish_id = data.get('publish_id')
+            if not upload_url:
+                raise UserError(_('TikTok response missing upload URL: %s') % init_json)
+
+            upload_response = requests.put(
+                upload_url,
+                headers={
+                    'Content-Type': 'video/mp4',
+                    'Content-Length': str(video_size),
+                    'Content-Range': f'bytes 0-{video_size - 1}/{video_size}',
+                },
+                data=video_bytes,
+                timeout=300,
+            )
+            upload_response.raise_for_status()
+
         except requests.RequestException as exc:
+            details = ''
+            if exc.response is not None:
+                details = f' | status={exc.response.status_code} body={exc.response.text}'
+            message = f'{exc}{details}'
             self.write(
                 {
                     'state': 'failed',
-                    'error_message': str(exc),
+                    'error_message': message,
+                    'response_body': getattr(exc.response, 'text', False),
                 }
             )
-            raise UserError(_('TikTok upload failed: %s') % exc) from exc
+            raise UserError(_('TikTok upload failed: %s') % message) from exc
 
         self.write(
             {
                 'state': 'uploaded',
                 'error_message': False,
-                'response_body': str(response_json),
-                'tiktok_video_id': (
-                    response_json.get('data', {}).get('publish_id')
-                    or response_json.get('data', {}).get('video_id')
-                    or response_json.get('video_id')
-                ),
+                'response_body': json.dumps(init_json),
+                'tiktok_video_id': publish_id or data.get('video_id') or init_json.get('video_id'),
             }
         )
 
