@@ -6,9 +6,11 @@
     'depends': ['base', 'mail'],
     'data': [
         'data/sequence_data.xml',
+        'data/cron_data.xml',
         'security/ir.model.access.csv',
         'views/tiktok_video_upload_views.xml',
         'views/social_video_post_views.xml',
+        'views/social_media_account_views.xml',
         'views/res_config_settings_views.xml',
     ],
     'application': True,
