@@ -50,6 +50,7 @@ class SocialVideoPost(models.Model):
     state = fields.Selection(
         [
             ('draft', 'Draft'),
+            ('scheduled', 'Scheduled'),
             ('uploaded', 'Uploaded'),
             ('partial', 'Partially Uploaded'),
             ('failed', 'Failed'),
@@ -57,6 +58,15 @@ class SocialVideoPost(models.Model):
         default='draft',
         tracking=True,
     )
+    publish_mode = fields.Selection(
+        [('now', 'Publish Now'), ('schedule', 'Schedule')],
+        default='now',
+        required=True,
+        tracking=True,
+    )
+    scheduled_datetime = fields.Datetime(tracking=True)
+    last_attempt_at = fields.Datetime(readonly=True)
+    attempt_count = fields.Integer(default=0, readonly=True)
     external_id = fields.Char(readonly=True)
     tiktok_external_id = fields.Char(readonly=True)
     facebook_external_id = fields.Char(readonly=True)
@@ -89,6 +99,15 @@ class SocialVideoPost(models.Model):
 
     def action_publish(self):
         self.ensure_one()
+        if (
+            self.publish_mode == 'schedule'
+            and not self.env.context.get('force_publish_now')
+            and self.scheduled_datetime
+            and self.scheduled_datetime > fields.Datetime.now()
+        ):
+            self.write({'state': 'scheduled'})
+            return self._success_notification(_('Post scheduled successfully.'))
+
         video_bytes = self._validate_video_payload()
         selected_publishers = self._selected_publishers()
         if not selected_publishers:
@@ -129,6 +148,33 @@ class SocialVideoPost(models.Model):
         if failures:
             raise UserError(_('All selected publishes failed: %s') % ' | '.join(f'{k}: {v}' for k, v in failures.items()))
         return self._success_notification(_('Video published to selected platforms successfully.'))
+
+    def action_schedule_publish(self):
+        for record in self:
+            if record.publish_mode != 'schedule':
+                raise UserError(_('Set Publish Mode to Schedule before scheduling.'))
+            if not record.scheduled_datetime:
+                raise UserError(_('Please set Scheduled Datetime.'))
+            if record.scheduled_datetime <= fields.Datetime.now():
+                raise UserError(_('Scheduled Datetime must be in the future.'))
+            record.write({'state': 'scheduled'})
+        return self._success_notification(_('Post(s) scheduled.'))
+
+    @api.model
+    def cron_publish_scheduled_posts(self):
+        scheduled_posts = self.search(
+            [
+                ('state', '=', 'scheduled'),
+                ('scheduled_datetime', '<=', fields.Datetime.now()),
+            ],
+            limit=100,
+        )
+        for post in scheduled_posts:
+            try:
+                post.with_context(force_publish_now=True).action_publish()
+            except UserError:
+                # state/error fields are already set by publish flow
+                continue
 
     def _selected_publishers(self):
         selected = []
@@ -395,6 +441,8 @@ class SocialVideoPost(models.Model):
             or False,
             'response_body': json.dumps(results) if results else False,
             'error_message': ' | '.join(f'{platform}: {message}' for platform, message in failures.items()) if failures else False,
+            'last_attempt_at': fields.Datetime.now(),
+            'attempt_count': self.attempt_count + 1,
         }
         vals['state'] = 'uploaded' if results and not failures else 'partial' if results and failures else 'failed'
         self.write(vals)
