@@ -1,4 +1,4 @@
-from odoo import models, fields
+from odoo import fields, models
 
 
 class ResConfigSettings(models.TransientModel):
@@ -39,6 +39,34 @@ class ResConfigSettings(models.TransientModel):
         string='TikTok Token Endpoint',
         config_parameter='tiktok_video_uploader.token_endpoint',
         default='https://open.tiktokapis.com/v2/oauth/token/',
+    )
+
+    facebook_page_id = fields.Char(
+        string='Facebook Page ID',
+        config_parameter='tiktok_video_uploader.facebook_page_id',
+    )
+    facebook_access_token = fields.Char(
+        string='Facebook Access Token',
+        config_parameter='tiktok_video_uploader.facebook_access_token',
+    )
+    facebook_graph_endpoint = fields.Char(
+        string='Facebook Graph Endpoint',
+        config_parameter='tiktok_video_uploader.facebook_graph_endpoint',
+        default='https://graph.facebook.com/v23.0',
+    )
+
+    instagram_user_id = fields.Char(
+        string='Instagram Business User ID',
+        config_parameter='tiktok_video_uploader.instagram_user_id',
+    )
+    instagram_access_token = fields.Char(
+        string='Instagram Access Token',
+        config_parameter='tiktok_video_uploader.instagram_access_token',
+    )
+    instagram_graph_endpoint = fields.Char(
+        string='Instagram Graph Endpoint',
+        config_parameter='tiktok_video_uploader.instagram_graph_endpoint',
+        default='https://graph.facebook.com/v23.0',
     )
 
     def action_tiktok_connect(self):

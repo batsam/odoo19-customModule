@@ -6,36 +6,61 @@
         <field name="inherit_id" ref="base.res_config_settings_view_form"/>
         <field name="arch" type="xml">
             <xpath expr="//form" position="inside">
-                <app string="TikTok" name="tiktok_video_uploader" groups="base.group_system">
+                <app string="Social Video" name="tiktok_video_uploader" groups="base.group_system">
                     <block title="TikTok OAuth">
                         <setting string="TikTok Client Key">
                             <field name="tiktok_client_key"/>
                         </setting>
-                        <setting string="TikTok Client Secret" help="Stored securely in system parameters">
+                        <setting string="TikTok Client Secret" help="Stored in system parameters">
                             <field name="tiktok_client_secret" password="True"/>
                         </setting>
-                        <setting string="TikTok Redirect URI" help="Must match your TikTok app exactly, e.g. https://your-ngrok-domain/tiktok/callback">
+                        <setting string="TikTok Redirect URI" help="Must match your TikTok app exactly">
                             <field name="tiktok_redirect_uri"/>
                         </setting>
-                        <setting string="TikTok OAuth Scopes" help="Comma-separated scopes required by your TikTok app">
+                        <setting string="TikTok OAuth Scopes">
                             <field name="tiktok_scopes"/>
                         </setting>
-                        <setting string="Authorize Endpoint">
+                        <setting string="TikTok Authorize Endpoint">
                             <field name="tiktok_authorize_endpoint"/>
                         </setting>
-                        <setting string="Token Endpoint">
+                        <setting string="TikTok Token Endpoint">
                             <field name="tiktok_token_endpoint"/>
                         </setting>
-                        <setting string="One-click Connect" help="Starts OAuth login and stores the returned access token automatically">
+                        <setting string="One-click Connect" help="Starts OAuth login and stores access token automatically">
                             <button name="action_tiktok_connect" type="object" string="Connect TikTok" class="btn-primary"/>
                         </setting>
                     </block>
+
                     <block title="TikTok API">
                         <setting string="TikTok Access Token" help="OAuth access token with video publish permission">
                             <field name="tiktok_access_token" password="True"/>
                         </setting>
-                        <setting string="Upload Endpoint" help="TikTok API endpoint for video upload initialization/upload">
+                        <setting string="TikTok Upload Endpoint">
                             <field name="tiktok_upload_endpoint"/>
+                        </setting>
+                    </block>
+
+                    <block title="Facebook API">
+                        <setting string="Facebook Page ID">
+                            <field name="facebook_page_id"/>
+                        </setting>
+                        <setting string="Facebook Access Token">
+                            <field name="facebook_access_token" password="True"/>
+                        </setting>
+                        <setting string="Facebook Graph Endpoint">
+                            <field name="facebook_graph_endpoint"/>
+                        </setting>
+                    </block>
+
+                    <block title="Instagram API">
+                        <setting string="Instagram Business User ID">
+                            <field name="instagram_user_id"/>
+                        </setting>
+                        <setting string="Instagram Access Token">
+                            <field name="instagram_access_token" password="True"/>
+                        </setting>
+                        <setting string="Instagram Graph Endpoint">
+                            <field name="instagram_graph_endpoint"/>
                         </setting>
                     </block>
                 </app>
