@@ -173,6 +173,23 @@ class SocialVideoPost(models.Model):
             icp.set_param('tiktok_video_uploader.access_token_expire_at', expire_at.isoformat())
         return new_access_token
 
+    def _get_meta_access_token(self):
+        icp = self.env['ir.config_parameter'].sudo()
+        override_token = icp.get_param('tiktok_video_uploader.facebook_access_token')
+        if override_token:
+            return override_token
+
+        access_token = icp.get_param('tiktok_video_uploader.meta_access_token')
+        expire_at = icp.get_param('tiktok_video_uploader.meta_access_token_expire_at')
+        if access_token and expire_at:
+            try:
+                if datetime.now(timezone.utc) < datetime.fromisoformat(expire_at).replace(tzinfo=timezone.utc):
+                    return access_token
+                raise UserError(_('Meta access token has expired. Please reconnect Meta OAuth in Settings.'))
+            except ValueError:
+                return access_token
+        return access_token
+
     def _publish_tiktok(self, video_bytes):
         access_token = self._get_tiktok_access_token()
         init_endpoint = self.env['ir.config_parameter'].sudo().get_param(
@@ -233,7 +250,7 @@ class SocialVideoPost(models.Model):
 
     def _publish_facebook(self, video_bytes):
         page_id = self.env['ir.config_parameter'].sudo().get_param('tiktok_video_uploader.facebook_page_id')
-        access_token = self.env['ir.config_parameter'].sudo().get_param('tiktok_video_uploader.facebook_access_token')
+        access_token = self._get_meta_access_token()
         graph_endpoint = self.env['ir.config_parameter'].sudo().get_param(
             'tiktok_video_uploader.facebook_graph_endpoint',
             default='https://graph.facebook.com/v23.0',
@@ -265,6 +282,8 @@ class SocialVideoPost(models.Model):
     def _publish_instagram(self, video_bytes):
         ig_user_id = self.env['ir.config_parameter'].sudo().get_param('tiktok_video_uploader.instagram_user_id')
         access_token = self.env['ir.config_parameter'].sudo().get_param('tiktok_video_uploader.instagram_access_token')
+        if not access_token:
+            access_token = self._get_meta_access_token()
         graph_endpoint = self.env['ir.config_parameter'].sudo().get_param(
             'tiktok_video_uploader.instagram_graph_endpoint',
             default='https://graph.facebook.com/v23.0',
