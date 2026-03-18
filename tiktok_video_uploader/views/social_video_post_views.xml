@@ -12,6 +12,7 @@
                 <field name="video_filename"/>
                 <field name="state"/>
                 <field name="scheduled_datetime"/>
+                <field name="next_retry_at"/>
                 <field name="tiktok_external_id"/>
                 <field name="facebook_external_id"/>
                 <field name="instagram_external_id"/>
@@ -27,14 +28,17 @@
             <form string="Social Video Post">
                 <header>
                     <button name="action_publish" type="object" string="Publish Selected Platforms" class="btn-primary" invisible="state == 'uploaded'"/>
+                    <button name="action_submit_review" type="object" string="Submit for Review" class="btn-secondary" invisible="state != 'draft'"/>
+                    <button name="action_approve" type="object" string="Approve" class="btn-secondary" invisible="state != 'in_review'"/>
+                    <button name="action_reject" type="object" string="Reject" class="btn-secondary" invisible="state != 'in_review'"/>
                     <button
                         name="action_schedule_publish"
                         type="object"
                         string="Schedule"
                         class="btn-secondary"
-                        invisible="publish_mode != 'schedule' or state == 'uploaded'"
+                        invisible="publish_mode != 'schedule' or state == 'uploaded' or state == 'dead_letter'"
                     />
-                    <field name="state" widget="statusbar" statusbar_visible="draft,scheduled,uploaded,partial,failed"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,in_review,approved,scheduled,uploaded,partial,failed,dead_letter"/>
                 </header>
                 <sheet>
                     <group string="Video Content">
@@ -43,6 +47,7 @@
                             <field name="video_file" filename="video_filename"/>
                             <field name="video_filename"/>
                             <field name="caption"/>
+                            <field name="requires_approval"/>
                             <field name="publish_mode"/>
                             <field name="scheduled_datetime" invisible="publish_mode != 'schedule'"/>
                         </group>
@@ -79,6 +84,8 @@
                         <field name="response_body" readonly="1"/>
                         <field name="last_attempt_at" readonly="1"/>
                         <field name="attempt_count" readonly="1"/>
+                        <field name="max_retry"/>
+                        <field name="next_retry_at" readonly="1"/>
                     </group>
                 </sheet>
                 <chatter/>
@@ -86,10 +93,21 @@
         </field>
     </record>
 
+    <record id="view_social_video_post_calendar" model="ir.ui.view">
+        <field name="name">social.video.post.calendar</field>
+        <field name="model">social.video.post</field>
+        <field name="arch" type="xml">
+            <calendar string="Publishing Calendar" date_start="scheduled_datetime" color="state">
+                <field name="name"/>
+                <field name="state"/>
+            </calendar>
+        </field>
+    </record>
+
     <record id="action_social_video_post" model="ir.actions.act_window">
         <field name="name">Video Publisher</field>
         <field name="res_model">social.video.post</field>
-        <field name="view_mode">list,form</field>
+        <field name="view_mode">list,calendar,form</field>
     </record>
 
     <menuitem id="menu_social_video_root" name="Social Video" sequence="50"/>

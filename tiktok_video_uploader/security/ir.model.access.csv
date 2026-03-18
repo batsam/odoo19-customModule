@@ -2,3 +2,4 @@ id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_tiktok_video_upload_user,tiktok.video.upload user,model_tiktok_video_upload,base.group_user,1,1,1,0
 access_social_video_post_user,social.video.post user,model_social_video_post,base.group_user,1,1,1,0
 access_social_media_account_user,social.media.account user,model_social_media_account,base.group_user,1,1,1,0
+access_social_publish_rule_user,social.publish.rule user,model_social_publish_rule,base.group_user,1,1,1,0

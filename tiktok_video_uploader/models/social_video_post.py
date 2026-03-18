@@ -50,14 +50,19 @@ class SocialVideoPost(models.Model):
     state = fields.Selection(
         [
             ('draft', 'Draft'),
+            ('in_review', 'In Review'),
+            ('approved', 'Approved'),
+            ('rejected', 'Rejected'),
             ('scheduled', 'Scheduled'),
             ('uploaded', 'Uploaded'),
             ('partial', 'Partially Uploaded'),
             ('failed', 'Failed'),
+            ('dead_letter', 'Dead Letter'),
         ],
         default='draft',
         tracking=True,
     )
+    requires_approval = fields.Boolean(default=True, tracking=True)
     publish_mode = fields.Selection(
         [('now', 'Publish Now'), ('schedule', 'Schedule')],
         default='now',
@@ -67,6 +72,8 @@ class SocialVideoPost(models.Model):
     scheduled_datetime = fields.Datetime(tracking=True)
     last_attempt_at = fields.Datetime(readonly=True)
     attempt_count = fields.Integer(default=0, readonly=True)
+    max_retry = fields.Integer(default=3)
+    next_retry_at = fields.Datetime(readonly=True)
     external_id = fields.Char(readonly=True)
     tiktok_external_id = fields.Char(readonly=True)
     facebook_external_id = fields.Char(readonly=True)
@@ -99,6 +106,8 @@ class SocialVideoPost(models.Model):
 
     def action_publish(self):
         self.ensure_one()
+        if self.requires_approval and self.state in ('draft', 'in_review', 'rejected'):
+            raise UserError(_('This post requires approval before publishing.'))
         if (
             self.publish_mode == 'schedule'
             and not self.env.context.get('force_publish_now')
@@ -149,6 +158,21 @@ class SocialVideoPost(models.Model):
             raise UserError(_('All selected publishes failed: %s') % ' | '.join(f'{k}: {v}' for k, v in failures.items()))
         return self._success_notification(_('Video published to selected platforms successfully.'))
 
+    def action_submit_review(self):
+        for record in self:
+            record.write({'state': 'in_review'})
+        return self._success_notification(_('Post submitted for review.'))
+
+    def action_approve(self):
+        for record in self:
+            record.write({'state': 'approved'})
+        return self._success_notification(_('Post approved.'))
+
+    def action_reject(self):
+        for record in self:
+            record.write({'state': 'rejected'})
+        return self._success_notification(_('Post rejected.'))
+
     def action_schedule_publish(self):
         for record in self:
             if record.publish_mode != 'schedule':
@@ -164,12 +188,27 @@ class SocialVideoPost(models.Model):
     def cron_publish_scheduled_posts(self):
         scheduled_posts = self.search(
             [
-                ('state', '=', 'scheduled'),
+                ('state', 'in', ['scheduled', 'failed']),
+                ('next_retry_at', '=', False),
+                '|',
                 ('scheduled_datetime', '<=', fields.Datetime.now()),
+                ('scheduled_datetime', '=', False),
             ],
             limit=100,
         )
-        for post in scheduled_posts:
+        retry_posts = self.search(
+            [
+                ('state', '=', 'failed'),
+                ('next_retry_at', '!=', False),
+                ('next_retry_at', '<=', fields.Datetime.now()),
+            ],
+            limit=100,
+        )
+        posts_to_run = scheduled_posts | retry_posts
+        for post in posts_to_run:
+            if post.attempt_count >= post.max_retry:
+                post.write({'state': 'dead_letter'})
+                continue
             try:
                 post.with_context(force_publish_now=True).action_publish()
             except UserError:
@@ -190,6 +229,13 @@ class SocialVideoPost(models.Model):
         target_accounts = self.target_account_ids.filtered(lambda acc: acc.platform == platform and acc.active)
         if target_accounts:
             return target_accounts
+        matched_rules = self.env['social.publish.rule'].search([('active', '=', True), ('platform', '=', platform)])
+        for rule in matched_rules:
+            if rule.keyword and rule.keyword.lower() not in (self.caption or '').lower():
+                continue
+            rule_accounts = rule.target_account_ids.filtered(lambda acc: acc.active and acc.platform == platform)
+            if rule_accounts:
+                return rule_accounts
         return self.env['social.media.account'].search(
             [('platform', '=', platform), ('active', '=', True), ('company_id', '=', self.env.company.id)]
         )
@@ -443,8 +489,20 @@ class SocialVideoPost(models.Model):
             'error_message': ' | '.join(f'{platform}: {message}' for platform, message in failures.items()) if failures else False,
             'last_attempt_at': fields.Datetime.now(),
             'attempt_count': self.attempt_count + 1,
+            'next_retry_at': False,
         }
-        vals['state'] = 'uploaded' if results and not failures else 'partial' if results and failures else 'failed'
+        if results and not failures:
+            vals['state'] = 'uploaded'
+        elif results and failures:
+            vals['state'] = 'partial'
+        else:
+            attempt_after_write = self.attempt_count + 1
+            if attempt_after_write >= self.max_retry:
+                vals['state'] = 'dead_letter'
+            else:
+                vals['state'] = 'failed'
+                backoff_minutes = min(60, 2 ** min(attempt_after_write, 6))
+                vals['next_retry_at'] = fields.Datetime.add(fields.Datetime.now(), minutes=backoff_minutes)
         self.write(vals)
 
     def _format_http_exception(self, exc):
