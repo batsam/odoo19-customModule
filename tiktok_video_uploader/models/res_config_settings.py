@@ -135,3 +135,13 @@ class ResConfigSettings(models.TransientModel):
             'url': f'{base_url}/facebook/connect',
             'target': 'self',
         }
+
+    def action_manage_social_accounts(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Connected Social Accounts',
+            'res_model': 'social.media.account',
+            'view_mode': 'list,form',
+            'target': 'current',
+        }

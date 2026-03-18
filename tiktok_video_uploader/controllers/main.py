@@ -121,6 +121,18 @@ class TikTokOAuthController(http.Controller):
         if expires_in:
             expire_at = datetime.utcnow() + timedelta(seconds=int(expires_in))
             icp.set_param('tiktok_video_uploader.access_token_expire_at', expire_at.isoformat())
+        account_data = payload.get('data', {})
+        tiktok_account_id = account_data.get('open_id') or account_data.get('union_id') or 'tiktok_default'
+        request.env['social.media.account'].sudo().upsert_connected_account(
+            {
+                'name': f'TikTok {tiktok_account_id}',
+                'platform': 'tiktok',
+                'external_account_id': tiktok_account_id,
+                'access_token': access_token,
+                'refresh_token': refresh_token or False,
+                'scope': icp.get_param('tiktok_video_uploader.scopes', default='user.info.basic,video.publish'),
+            }
+        )
 
         return request.make_response(
             'TikTok connected successfully. You can return to Odoo and upload videos now.',
@@ -279,11 +291,29 @@ class TikTokOAuthController(http.Controller):
             icp.set_param('tiktok_video_uploader.meta_access_token_expire_at', expire_at.isoformat())
         if page_id:
             icp.set_param('tiktok_video_uploader.facebook_page_id', page_id)
+            request.env['social.media.account'].sudo().upsert_connected_account(
+                {
+                    'name': f'Facebook Page {primary_page.get("name") or page_id}',
+                    'platform': 'facebook',
+                    'external_account_id': page_id,
+                    'access_token': page_access_token or long_token,
+                    'scope': icp.get_param('tiktok_video_uploader.meta_scopes'),
+                }
+            )
         if page_access_token:
             icp.set_param('tiktok_video_uploader.facebook_access_token', page_access_token)
         if ig_user_id:
             icp.set_param('tiktok_video_uploader.instagram_user_id', ig_user_id)
             icp.set_param('tiktok_video_uploader.instagram_access_token', page_access_token or long_token)
+            request.env['social.media.account'].sudo().upsert_connected_account(
+                {
+                    'name': f'Instagram {ig_user_id}',
+                    'platform': 'instagram',
+                    'external_account_id': ig_user_id,
+                    'access_token': page_access_token or long_token,
+                    'scope': icp.get_param('tiktok_video_uploader.meta_scopes'),
+                }
+            )
 
         return request.make_response(
             'Meta connected successfully. Facebook/Instagram credentials were synced.',

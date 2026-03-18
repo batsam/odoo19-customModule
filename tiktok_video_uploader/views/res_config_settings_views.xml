@@ -7,7 +7,19 @@
         <field name="arch" type="xml">
             <xpath expr="//form" position="inside">
                 <app string="Social Video" name="tiktok_video_uploader" groups="base.group_system">
-                    <block title="TikTok OAuth">
+                    <block title="User Connections">
+                        <setting string="Connected Accounts" help="Manage multiple social accounts per platform">
+                            <button name="action_manage_social_accounts" type="object" string="Manage Connected Accounts" class="btn-secondary"/>
+                        </setting>
+                        <setting string="Connect TikTok Account">
+                            <button name="action_tiktok_connect" type="object" string="Link TikTok Account" class="btn-primary"/>
+                        </setting>
+                        <setting string="Connect Facebook/Instagram">
+                            <button name="action_meta_connect" type="object" string="Link Meta Account" class="btn-primary"/>
+                        </setting>
+                    </block>
+
+                    <block title="Developer: TikTok OAuth">
                         <setting string="TikTok Client Key">
                             <field name="tiktok_client_key"/>
                         </setting>
@@ -26,12 +38,9 @@
                         <setting string="TikTok Token Endpoint">
                             <field name="tiktok_token_endpoint"/>
                         </setting>
-                        <setting string="One-click Connect" help="Starts OAuth login and stores access token automatically">
-                            <button name="action_tiktok_connect" type="object" string="Connect TikTok" class="btn-primary"/>
-                        </setting>
                     </block>
 
-                    <block title="TikTok API">
+                    <block title="Developer: TikTok API">
                         <setting string="TikTok Access Token" help="OAuth access token with video publish permission">
                             <field name="tiktok_access_token" password="True"/>
                         </setting>
@@ -43,10 +52,7 @@
                         </setting>
                     </block>
 
-                    <block title="Facebook API">
-                        <setting string="Meta OAuth Connect" help="Use OAuth once, then reuse Meta token for both Facebook and Instagram">
-                            <button name="action_meta_connect" type="object" string="Connect Facebook/Instagram" class="btn-primary"/>
-                        </setting>
+                    <block title="Developer: Facebook API">
                         <setting string="Meta Access Token" help="Shared token from Meta OAuth callback">
                             <field name="meta_access_token" password="True"/>
                         </setting>
@@ -64,7 +70,7 @@
                         </setting>
                     </block>
 
-                    <block title="Instagram API">
+                    <block title="Developer: Instagram API">
                         <setting string="Instagram Business User ID">
                             <field name="instagram_user_id"/>
                         </setting>
@@ -76,7 +82,7 @@
                         </setting>
                     </block>
 
-                    <block title="Meta OAuth">
+                    <block title="Developer: Meta OAuth">
                         <setting string="Meta App ID">
                             <field name="meta_app_id"/>
                         </setting>

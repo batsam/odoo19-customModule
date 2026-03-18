@@ -23,6 +23,14 @@ class SocialVideoPost(models.Model):
     publish_tiktok = fields.Boolean(default=True, tracking=True)
     publish_facebook = fields.Boolean(default=True, tracking=True)
     publish_instagram = fields.Boolean(default=True, tracking=True)
+    target_account_ids = fields.Many2many(
+        'social.media.account',
+        'social_video_post_account_rel',
+        'post_id',
+        'account_id',
+        string='Target Accounts',
+        help='If empty, all active connected accounts for selected platforms are used.',
+    )
     video_file = fields.Binary(required=True, string='Video File', attachment=True)
     video_filename = fields.Char(string='File Name')
     video_public_url = fields.Char(
@@ -89,11 +97,29 @@ class SocialVideoPost(models.Model):
         results = {}
         failures = {}
         for platform, publish_method in selected_publishers:
-            try:
-                external_id, response_payload = publish_method(video_bytes)
-                results[platform] = {'external_id': external_id, 'response': response_payload}
-            except UserError as exc:
-                failures[platform] = str(exc)
+            accounts = self._get_target_accounts(platform)
+            if not accounts:
+                failures[platform] = _('No connected active account found.')
+                continue
+            platform_results = []
+            platform_failures = []
+            for account in accounts:
+                try:
+                    external_id, response_payload = publish_method(video_bytes, account)
+                    platform_results.append(
+                        {
+                            'account': account.name,
+                            'account_id': account.external_account_id,
+                            'external_id': external_id,
+                            'response': response_payload,
+                        }
+                    )
+                except UserError as exc:
+                    platform_failures.append(f'{account.name}: {exc}')
+            if platform_results:
+                results[platform] = platform_results
+            if platform_failures:
+                failures[platform] = ' || '.join(platform_failures)
 
         self._write_publish_results(results, failures)
         if failures and results:
@@ -114,6 +140,14 @@ class SocialVideoPost(models.Model):
             selected.append(('instagram', self._publish_instagram))
         return selected
 
+    def _get_target_accounts(self, platform):
+        target_accounts = self.target_account_ids.filtered(lambda acc: acc.platform == platform and acc.active)
+        if target_accounts:
+            return target_accounts
+        return self.env['social.media.account'].search(
+            [('platform', '=', platform), ('active', '=', True), ('company_id', '=', self.env.company.id)]
+        )
+
     def _validate_video_payload(self):
         if not self.video_file:
             raise UserError(_('Please attach a video file before publishing.'))
@@ -127,7 +161,9 @@ class SocialVideoPost(models.Model):
             raise UserError(_('File type must be a video format.'))
         return video_bytes
 
-    def _get_tiktok_access_token(self):
+    def _get_tiktok_access_token(self, account=False):
+        if account and account.access_token:
+            return account.access_token
         icp = self.env['ir.config_parameter'].sudo()
         access_token = icp.get_param('tiktok_video_uploader.access_token')
         expire_at = icp.get_param('tiktok_video_uploader.access_token_expire_at')
@@ -173,7 +209,9 @@ class SocialVideoPost(models.Model):
             icp.set_param('tiktok_video_uploader.access_token_expire_at', expire_at.isoformat())
         return new_access_token
 
-    def _get_meta_access_token(self):
+    def _get_meta_access_token(self, account=False):
+        if account and account.access_token:
+            return account.access_token
         icp = self.env['ir.config_parameter'].sudo()
         override_token = icp.get_param('tiktok_video_uploader.facebook_access_token')
         if override_token:
@@ -190,8 +228,8 @@ class SocialVideoPost(models.Model):
                 return access_token
         return access_token
 
-    def _publish_tiktok(self, video_bytes):
-        access_token = self._get_tiktok_access_token()
+    def _publish_tiktok(self, video_bytes, account):
+        access_token = self._get_tiktok_access_token(account)
         init_endpoint = self.env['ir.config_parameter'].sudo().get_param(
             'tiktok_video_uploader.upload_endpoint',
             default='https://open.tiktokapis.com/v2/post/publish/video/init/',
@@ -248,9 +286,9 @@ class SocialVideoPost(models.Model):
         except requests.RequestException as exc:
             raise UserError(_('TikTok upload failed: %s') % self._format_http_exception(exc)) from exc
 
-    def _publish_facebook(self, video_bytes):
-        page_id = self.env['ir.config_parameter'].sudo().get_param('tiktok_video_uploader.facebook_page_id')
-        access_token = self._get_meta_access_token()
+    def _publish_facebook(self, video_bytes, account):
+        page_id = account.external_account_id or self.env['ir.config_parameter'].sudo().get_param('tiktok_video_uploader.facebook_page_id')
+        access_token = self._get_meta_access_token(account)
         graph_endpoint = self.env['ir.config_parameter'].sudo().get_param(
             'tiktok_video_uploader.facebook_graph_endpoint',
             default='https://graph.facebook.com/v23.0',
@@ -279,11 +317,11 @@ class SocialVideoPost(models.Model):
         except requests.RequestException as exc:
             raise UserError(_('Facebook upload failed: %s') % self._format_http_exception(exc)) from exc
 
-    def _publish_instagram(self, video_bytes):
-        ig_user_id = self.env['ir.config_parameter'].sudo().get_param('tiktok_video_uploader.instagram_user_id')
+    def _publish_instagram(self, video_bytes, account):
+        ig_user_id = account.external_account_id or self.env['ir.config_parameter'].sudo().get_param('tiktok_video_uploader.instagram_user_id')
         access_token = self.env['ir.config_parameter'].sudo().get_param('tiktok_video_uploader.instagram_access_token')
         if not access_token:
-            access_token = self._get_meta_access_token()
+            access_token = self._get_meta_access_token(account)
         graph_endpoint = self.env['ir.config_parameter'].sudo().get_param(
             'tiktok_video_uploader.instagram_graph_endpoint',
             default='https://graph.facebook.com/v23.0',
@@ -328,22 +366,31 @@ class SocialVideoPost(models.Model):
             raise UserError(_('Instagram publish failed: %s') % self._format_http_exception(exc)) from exc
 
     def _write_publish_results(self, results, failures):
+        tiktok_responses = results.get('tiktok', [])
+        facebook_responses = results.get('facebook', [])
+        instagram_responses = results.get('instagram', [])
+        first_tiktok = tiktok_responses[0] if tiktok_responses else {}
+        first_facebook = facebook_responses[0] if facebook_responses else {}
+        first_instagram = instagram_responses[0] if instagram_responses else {}
         vals = {
-            'tiktok_external_id': results.get('tiktok', {}).get('external_id'),
-            'facebook_external_id': results.get('facebook', {}).get('external_id'),
-            'instagram_external_id': results.get('instagram', {}).get('external_id'),
-            'tiktok_response_body': json.dumps(results.get('tiktok', {}).get('response', {})) if results.get('tiktok') else False,
-            'facebook_response_body': json.dumps(results.get('facebook', {}).get('response', {}))
-            if results.get('facebook')
-            else False,
-            'instagram_response_body': json.dumps(results.get('instagram', {}).get('response', {}))
-            if results.get('instagram')
-            else False,
+            'tiktok_external_id': first_tiktok.get('external_id'),
+            'facebook_external_id': first_facebook.get('external_id'),
+            'instagram_external_id': first_instagram.get('external_id'),
+            'tiktok_response_body': json.dumps(tiktok_responses) if tiktok_responses else False,
+            'facebook_response_body': json.dumps(facebook_responses) if facebook_responses else False,
+            'instagram_response_body': json.dumps(instagram_responses) if instagram_responses else False,
             'tiktok_error_message': failures.get('tiktok'),
             'facebook_error_message': failures.get('facebook'),
             'instagram_error_message': failures.get('instagram'),
             'external_id': ', '.join(
-                filter(None, [results.get('tiktok', {}).get('external_id'), results.get('facebook', {}).get('external_id'), results.get('instagram', {}).get('external_id')])
+                filter(
+                    None,
+                    [
+                        first_tiktok.get('external_id'),
+                        first_facebook.get('external_id'),
+                        first_instagram.get('external_id'),
+                    ],
+                )
             )
             or False,
             'response_body': json.dumps(results) if results else False,
