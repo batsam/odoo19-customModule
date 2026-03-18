@@ -41,6 +41,11 @@
                             <field name="publish_facebook"/>
                             <field name="publish_instagram"/>
                             <field name="target_account_ids" widget="many2many_tags"/>
+                            <field
+                                name="target_account_ids"
+                                widget="many2many_tags"
+                                options="{'no_create_edit': False}"
+                            />
                             <field name="privacy_level" invisible="not publish_tiktok"/>
                             <field name="video_public_url" invisible="not publish_instagram"/>
                         </group>
