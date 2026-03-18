@@ -1,0 +1,17 @@
+{
+    'name': 'TikTok Video Uploader',
+    'summary': 'Upload videos from Odoo to TikTok via API',
+    'version': '19.0.1.0.0',
+    'category': 'Marketing/Social Marketing',
+    'depends': ['base', 'mail'],
+    'data': [
+        'data/sequence_data.xml',
+        'security/ir.model.access.csv',
+        'views/tiktok_video_upload_views.xml',
+        'views/social_video_post_views.xml',
+        'views/res_config_settings_views.xml',
+    ],
+    'application': True,
+    'installable': True,
+    'license': 'LGPL-3',
+}
