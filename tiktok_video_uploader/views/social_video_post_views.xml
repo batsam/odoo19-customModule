@@ -40,14 +40,12 @@
                             <field name="publish_tiktok"/>
                             <field name="publish_facebook"/>
                             <field name="publish_instagram"/>
-<<<<<<< codex/review-tiktok_video_uploader-module-and-agents.md-nne2jn
+                            <field name="target_account_ids" widget="many2many_tags"/>
                             <field
                                 name="target_account_ids"
                                 widget="many2many_tags"
                                 options="{'no_create_edit': False}"
                             />
-=======
->>>>>>> main
                             <field name="privacy_level" invisible="not publish_tiktok"/>
                             <field name="video_public_url" invisible="not publish_instagram"/>
                         </group>
