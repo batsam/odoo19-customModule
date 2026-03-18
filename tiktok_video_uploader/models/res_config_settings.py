@@ -68,6 +68,11 @@ class ResConfigSettings(models.TransientModel):
         config_parameter='tiktok_video_uploader.instagram_graph_endpoint',
         default='https://graph.facebook.com/v23.0',
     )
+    max_video_size_mb = fields.Integer(
+        string='Max Upload Size (MB)',
+        config_parameter='tiktok_video_uploader.max_video_size_mb',
+        default=200,
+    )
 
     def action_tiktok_connect(self):
         self.ensure_one()

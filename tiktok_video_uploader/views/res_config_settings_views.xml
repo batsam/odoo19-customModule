@@ -38,6 +38,9 @@
                         <setting string="TikTok Upload Endpoint">
                             <field name="tiktok_upload_endpoint"/>
                         </setting>
+                        <setting string="Max Upload Size (MB)" help="Validation limit for uploaded video binary before API calls">
+                            <field name="max_video_size_mb"/>
+                        </setting>
                     </block>
 
                     <block title="Facebook API">

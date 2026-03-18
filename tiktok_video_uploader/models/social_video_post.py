@@ -1,5 +1,7 @@
 import base64
 import json
+import mimetypes
+from datetime import datetime, timedelta, timezone
 
 import requests
 
@@ -13,16 +15,14 @@ class SocialVideoPost(models.Model):
     _inherit = ['mail.thread', 'mail.activity.mixin']
 
     name = fields.Char(required=True, default='New', tracking=True)
-    platform = fields.Selection(
-        [
-            ('tiktok', 'TikTok'),
-            ('facebook', 'Facebook'),
-            ('instagram', 'Instagram'),
-        ],
-        required=True,
+    platform = fields.Selection(  # legacy field kept for backward compatibility
+        [('tiktok', 'TikTok'), ('facebook', 'Facebook'), ('instagram', 'Instagram')],
         default='tiktok',
         tracking=True,
     )
+    publish_tiktok = fields.Boolean(default=True, tracking=True)
+    publish_facebook = fields.Boolean(default=True, tracking=True)
+    publish_instagram = fields.Boolean(default=True, tracking=True)
     video_file = fields.Binary(required=True, string='Video File', attachment=True)
     video_filename = fields.Char(string='File Name')
     video_public_url = fields.Char(
@@ -43,14 +43,34 @@ class SocialVideoPost(models.Model):
         [
             ('draft', 'Draft'),
             ('uploaded', 'Uploaded'),
+            ('partial', 'Partially Uploaded'),
             ('failed', 'Failed'),
         ],
         default='draft',
         tracking=True,
     )
     external_id = fields.Char(readonly=True)
+    tiktok_external_id = fields.Char(readonly=True)
+    facebook_external_id = fields.Char(readonly=True)
+    instagram_external_id = fields.Char(readonly=True)
     response_body = fields.Text(readonly=True)
+    tiktok_response_body = fields.Text(readonly=True)
+    facebook_response_body = fields.Text(readonly=True)
+    instagram_response_body = fields.Text(readonly=True)
     error_message = fields.Text(readonly=True)
+    tiktok_error_message = fields.Text(readonly=True)
+    facebook_error_message = fields.Text(readonly=True)
+    instagram_error_message = fields.Text(readonly=True)
+
+    @api.model
+    def _max_video_size_bytes(self):
+        max_mb = int(
+            self.env['ir.config_parameter'].sudo().get_param(
+                'tiktok_video_uploader.max_video_size_mb',
+                default='200',
+            )
+        )
+        return max_mb * 1024 * 1024
 
     @api.model_create_multi
     def create(self, vals_list):
@@ -61,16 +81,100 @@ class SocialVideoPost(models.Model):
 
     def action_publish(self):
         self.ensure_one()
-        if self.platform == 'tiktok':
-            return self._publish_tiktok()
-        if self.platform == 'facebook':
-            return self._publish_facebook()
-        if self.platform == 'instagram':
-            return self._publish_instagram()
-        raise UserError(_('Unsupported platform.'))
+        video_bytes = self._validate_video_payload()
+        selected_publishers = self._selected_publishers()
+        if not selected_publishers:
+            raise UserError(_('Select at least one destination platform.'))
 
-    def _publish_tiktok(self):
-        access_token = self.env['ir.config_parameter'].sudo().get_param('tiktok_video_uploader.access_token')
+        results = {}
+        failures = {}
+        for platform, publish_method in selected_publishers:
+            try:
+                external_id, response_payload = publish_method(video_bytes)
+                results[platform] = {'external_id': external_id, 'response': response_payload}
+            except UserError as exc:
+                failures[platform] = str(exc)
+
+        self._write_publish_results(results, failures)
+        if failures and results:
+            return self._success_notification(
+                _('Video published with partial success. Failed: %s') % ', '.join(sorted(failures.keys()))
+            )
+        if failures:
+            raise UserError(_('All selected publishes failed: %s') % ' | '.join(f'{k}: {v}' for k, v in failures.items()))
+        return self._success_notification(_('Video published to selected platforms successfully.'))
+
+    def _selected_publishers(self):
+        selected = []
+        if self.publish_tiktok:
+            selected.append(('tiktok', self._publish_tiktok))
+        if self.publish_facebook:
+            selected.append(('facebook', self._publish_facebook))
+        if self.publish_instagram:
+            selected.append(('instagram', self._publish_instagram))
+        return selected
+
+    def _validate_video_payload(self):
+        if not self.video_file:
+            raise UserError(_('Please attach a video file before publishing.'))
+        video_bytes = base64.b64decode(self.video_file)
+        if not video_bytes:
+            raise UserError(_('Uploaded file is empty.'))
+        if len(video_bytes) > self._max_video_size_bytes():
+            raise UserError(_('Video exceeds configured max size.'))
+        content_type = mimetypes.guess_type(self.video_filename or '')[0] or ''
+        if self.video_filename and not content_type.startswith('video/'):
+            raise UserError(_('File type must be a video format.'))
+        return video_bytes
+
+    def _get_tiktok_access_token(self):
+        icp = self.env['ir.config_parameter'].sudo()
+        access_token = icp.get_param('tiktok_video_uploader.access_token')
+        expire_at = icp.get_param('tiktok_video_uploader.access_token_expire_at')
+        if access_token and expire_at:
+            try:
+                if datetime.now(timezone.utc) < datetime.fromisoformat(expire_at).replace(tzinfo=timezone.utc):
+                    return access_token
+            except ValueError:
+                return access_token
+        refresh_token = icp.get_param('tiktok_video_uploader.refresh_token')
+        client_key = icp.get_param('tiktok_video_uploader.client_key')
+        client_secret = icp.get_param('tiktok_video_uploader.client_secret')
+        token_endpoint = icp.get_param(
+            'tiktok_video_uploader.token_endpoint',
+            default='https://open.tiktokapis.com/v2/oauth/token/',
+        )
+        if not refresh_token or not client_key or not client_secret:
+            return access_token
+        refresh_res = requests.post(
+            token_endpoint,
+            headers={'Content-Type': 'application/x-www-form-urlencoded'},
+            data={
+                'client_key': client_key,
+                'client_secret': client_secret,
+                'grant_type': 'refresh_token',
+                'refresh_token': refresh_token,
+            },
+            timeout=60,
+        )
+        refresh_res.raise_for_status()
+        payload = refresh_res.json()
+        data = payload.get('data', {})
+        new_access_token = payload.get('access_token') or data.get('access_token')
+        if not new_access_token:
+            return access_token
+        icp.set_param('tiktok_video_uploader.access_token', new_access_token)
+        new_refresh_token = payload.get('refresh_token') or data.get('refresh_token')
+        if new_refresh_token:
+            icp.set_param('tiktok_video_uploader.refresh_token', new_refresh_token)
+        expires_in = payload.get('expires_in') or data.get('expires_in')
+        if expires_in:
+            expire_at = datetime.now(timezone.utc) + timedelta(seconds=int(expires_in))
+            icp.set_param('tiktok_video_uploader.access_token_expire_at', expire_at.isoformat())
+        return new_access_token
+
+    def _publish_tiktok(self, video_bytes):
+        access_token = self._get_tiktok_access_token()
         init_endpoint = self.env['ir.config_parameter'].sudo().get_param(
             'tiktok_video_uploader.upload_endpoint',
             default='https://open.tiktokapis.com/v2/post/publish/video/init/',
@@ -78,7 +182,6 @@ class SocialVideoPost(models.Model):
         if not access_token:
             raise UserError(_('Configure TikTok access token in Settings.'))
 
-        video_bytes = base64.b64decode(self.video_file)
         video_size = len(video_bytes)
         payload = {
             'post_info': {
@@ -124,14 +227,11 @@ class SocialVideoPost(models.Model):
                 timeout=300,
             )
             upload_res.raise_for_status()
-            self._mark_uploaded(publish_id or init_json.get('video_id'), init_json)
+            return publish_id or init_json.get('video_id'), init_json
         except requests.RequestException as exc:
-            self._mark_failed(exc)
-            raise UserError(_('TikTok upload failed: %s') % self.error_message) from exc
+            raise UserError(_('TikTok upload failed: %s') % self._format_http_exception(exc)) from exc
 
-        return self._success_notification(_('TikTok upload complete'))
-
-    def _publish_facebook(self):
+    def _publish_facebook(self, video_bytes):
         page_id = self.env['ir.config_parameter'].sudo().get_param('tiktok_video_uploader.facebook_page_id')
         access_token = self.env['ir.config_parameter'].sudo().get_param('tiktok_video_uploader.facebook_access_token')
         graph_endpoint = self.env['ir.config_parameter'].sudo().get_param(
@@ -141,7 +241,6 @@ class SocialVideoPost(models.Model):
         if not page_id or not access_token:
             raise UserError(_('Configure Facebook Page ID and Access Token in Settings.'))
 
-        video_bytes = base64.b64decode(self.video_file)
         file_name = self.video_filename or f'{self.name}.mp4'
         url = f"{graph_endpoint}/{page_id}/videos"
 
@@ -159,14 +258,11 @@ class SocialVideoPost(models.Model):
             )
             response.raise_for_status()
             data = response.json()
-            self._mark_uploaded(data.get('id') or data.get('video_id'), data)
+            return data.get('id') or data.get('video_id'), data
         except requests.RequestException as exc:
-            self._mark_failed(exc)
-            raise UserError(_('Facebook upload failed: %s') % self.error_message) from exc
+            raise UserError(_('Facebook upload failed: %s') % self._format_http_exception(exc)) from exc
 
-        return self._success_notification(_('Facebook upload complete'))
-
-    def _publish_instagram(self):
+    def _publish_instagram(self, video_bytes):
         ig_user_id = self.env['ir.config_parameter'].sudo().get_param('tiktok_video_uploader.instagram_user_id')
         access_token = self.env['ir.config_parameter'].sudo().get_param('tiktok_video_uploader.instagram_access_token')
         graph_endpoint = self.env['ir.config_parameter'].sudo().get_param(
@@ -175,7 +271,7 @@ class SocialVideoPost(models.Model):
         )
         if not ig_user_id or not access_token:
             raise UserError(_('Configure Instagram User ID and Access Token in Settings.'))
-        if not self.video_public_url:
+        if self.publish_instagram and not self.video_public_url:
             raise UserError(_('Instagram requires a public Video URL for publishing.'))
 
         create_url = f"{graph_endpoint}/{ig_user_id}/media"
@@ -208,36 +304,40 @@ class SocialVideoPost(models.Model):
             )
             publish_res.raise_for_status()
             publish_json = publish_res.json()
-            self._mark_uploaded(publish_json.get('id') or creation_id, publish_json)
+            return publish_json.get('id') or creation_id, publish_json
         except requests.RequestException as exc:
-            self._mark_failed(exc)
-            raise UserError(_('Instagram publish failed: %s') % self.error_message) from exc
+            raise UserError(_('Instagram publish failed: %s') % self._format_http_exception(exc)) from exc
 
-        return self._success_notification(_('Instagram publish request sent'))
+    def _write_publish_results(self, results, failures):
+        vals = {
+            'tiktok_external_id': results.get('tiktok', {}).get('external_id'),
+            'facebook_external_id': results.get('facebook', {}).get('external_id'),
+            'instagram_external_id': results.get('instagram', {}).get('external_id'),
+            'tiktok_response_body': json.dumps(results.get('tiktok', {}).get('response', {})) if results.get('tiktok') else False,
+            'facebook_response_body': json.dumps(results.get('facebook', {}).get('response', {}))
+            if results.get('facebook')
+            else False,
+            'instagram_response_body': json.dumps(results.get('instagram', {}).get('response', {}))
+            if results.get('instagram')
+            else False,
+            'tiktok_error_message': failures.get('tiktok'),
+            'facebook_error_message': failures.get('facebook'),
+            'instagram_error_message': failures.get('instagram'),
+            'external_id': ', '.join(
+                filter(None, [results.get('tiktok', {}).get('external_id'), results.get('facebook', {}).get('external_id'), results.get('instagram', {}).get('external_id')])
+            )
+            or False,
+            'response_body': json.dumps(results) if results else False,
+            'error_message': ' | '.join(f'{platform}: {message}' for platform, message in failures.items()) if failures else False,
+        }
+        vals['state'] = 'uploaded' if results and not failures else 'partial' if results and failures else 'failed'
+        self.write(vals)
 
-    def _mark_failed(self, exc):
+    def _format_http_exception(self, exc):
         details = ''
-        body = False
         if exc.response is not None:
-            body = exc.response.text
-            details = f' | status={exc.response.status_code} body={body}'
-        self.write(
-            {
-                'state': 'failed',
-                'error_message': f'{exc}{details}',
-                'response_body': body,
-            }
-        )
-
-    def _mark_uploaded(self, external_id, response_data):
-        self.write(
-            {
-                'state': 'uploaded',
-                'error_message': False,
-                'external_id': external_id,
-                'response_body': json.dumps(response_data),
-            }
-        )
+            details = f' | status={exc.response.status_code} body={exc.response.text}'
+        return f'{exc}{details}'
 
     def _success_notification(self, message):
         return {

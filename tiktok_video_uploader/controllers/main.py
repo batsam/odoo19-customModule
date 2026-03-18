@@ -29,7 +29,7 @@ class TikTokOAuthController(http.Controller):
             )
 
         state = secrets.token_urlsafe(24)
-        icp.set_param('tiktok_video_uploader.oauth_state', state)
+        request.session['tiktok_video_uploader.oauth_state'] = state
 
         query = urlencode(
             {
@@ -56,13 +56,14 @@ class TikTokOAuthController(http.Controller):
             )
 
         icp = request.env['ir.config_parameter'].sudo()
-        expected_state = icp.get_param('tiktok_video_uploader.oauth_state')
+        expected_state = request.session.get('tiktok_video_uploader.oauth_state')
         if not expected_state or expected_state != state:
             return request.make_response(
                 'Invalid OAuth state. Please retry TikTok connect.',
                 headers=[('Content-Type', 'text/plain; charset=utf-8')],
                 status=400,
             )
+        request.session.pop('tiktok_video_uploader.oauth_state', None)
 
         client_key = icp.get_param('tiktok_video_uploader.client_key')
         client_secret = icp.get_param('tiktok_video_uploader.client_secret')
