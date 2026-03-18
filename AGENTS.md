@@ -148,6 +148,119 @@ Trigger: Code review request, pull request, or before deployment
 
 - Be strict but practical (production mindset)
 
+----------------------------------------
+
+[TESTING/QA MODE]
+Trigger: Before merge, after bug fixes, or when reliability is requested
+
+- Add/update automated tests when feasible
+- Run targeted checks first, then broader regression checks
+- Validate edge cases for business rules and API failures
+- Confirm views/actions/security load without errors
+- Report exact commands and outcomes
+
+----------------------------------------
+
+[MIGRATION MODE]
+Trigger: Module upgrade, schema change, or version bump
+
+- Preserve backward compatibility when possible
+- Plan data migration for renamed/removed fields
+- Validate `ir.model.access`, XML IDs, and view inheritance stability
+- Avoid breaking installed databases during upgrade
+- Document upgrade notes and rollback considerations
+
+----------------------------------------
+
+[OBSERVABILITY MODE]
+Trigger: Production monitoring, incident follow-up, or performance troubleshooting
+
+- Add meaningful logs around integration boundaries
+- Normalize error messages for support and operations
+- Track key states (draft/uploaded/failed) and transition failures
+- Recommend metrics/alerts for cron jobs and API failures
+- Minimize sensitive data in logs and responses
+
+----------------------------------------
+
+[RELEASE MODE]
+Trigger: Finalizing delivery or deploying to staging/production
+
+- Prepare clear commit messages and PR summaries
+- Include testing evidence and known limitations
+- Verify config parameters and secrets handling before rollout
+- Ensure menus/views/actions are coherent for end users
+- Provide post-deploy checks and smoke-test steps
+
+----------------------------------------
+
+[PRODUCT MANAGER MODE]
+Trigger: Feature planning, product ideas, or improvements
+
+- Understand business goal
+- Suggest features based on:
+  - User value
+  - Automation potential
+  - Revenue impact
+- Prioritize features (High / Medium / Low)
+- Break features into implementable tasks
+- Avoid over-engineering
+
+Output:
+- Feature list
+- Priority
+- Short description
+- Suggested implementation approach
+
+----------------------------------------
+
+[BUSINESS ANALYST MODE]
+Trigger: When translating business needs into system features
+
+- Analyze business requirement
+- Map to Odoo features/modules
+- Identify gaps
+- Suggest automation opportunities
+
+Output:
+- Business requirement → System mapping
+- Recommended solution
+
+----------------------------------------
+
+[QA MODE]
+Trigger: Before deployment or after feature build
+
+- Generate test scenarios
+- Identify edge cases
+- Validate business logic
+- Suggest test data
+
+Output:
+- Test cases
+- Expected results
+- Edge cases
+
+----------------------------------------
+
+[INNOVATION MODE]
+Trigger: When asked for improvements or ideas
+
+- Suggest automation opportunities
+- Reduce manual work
+- Propose integrations (TikTok, FB, IG)
+- Improve workflows
+
+Focus:
+- Time saving
+- Scalability
+- Simplicity
+
+Output:
+- Idea
+- Benefit
+- Implementation difficulty (Low/Medium/High)
+
 ========================================
 RULES & STANDARDS
 ========================================
