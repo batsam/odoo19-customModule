@@ -6,10 +6,14 @@
         <field name="arch" type="xml">
             <list>
                 <field name="name"/>
-                <field name="platform"/>
+                <field name="publish_tiktok"/>
+                <field name="publish_facebook"/>
+                <field name="publish_instagram"/>
                 <field name="video_filename"/>
                 <field name="state"/>
-                <field name="external_id"/>
+                <field name="tiktok_external_id"/>
+                <field name="facebook_external_id"/>
+                <field name="instagram_external_id"/>
                 <field name="create_date"/>
             </list>
         </field>
@@ -21,20 +25,49 @@
         <field name="arch" type="xml">
             <form string="Social Video Post">
                 <header>
-                    <button name="action_publish" type="object" string="Publish" class="btn-primary" invisible="state == 'uploaded'"/>
-                    <field name="state" widget="statusbar" statusbar_visible="draft,uploaded,failed"/>
+                    <button name="action_publish" type="object" string="Publish Selected Platforms" class="btn-primary" invisible="state == 'uploaded'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,uploaded,partial,failed"/>
                 </header>
                 <sheet>
-                    <group>
-                        <field name="name" readonly="1"/>
-                        <field name="platform"/>
-                        <field name="video_file" filename="video_filename"/>
-                        <field name="video_filename"/>
-                        <field name="video_public_url" invisible="platform != 'instagram'"/>
-                        <field name="caption"/>
-                        <field name="privacy_level" invisible="platform != 'tiktok'"/>
+                    <group string="Video Content">
+                        <group>
+                            <field name="name" readonly="1"/>
+                            <field name="video_file" filename="video_filename"/>
+                            <field name="video_filename"/>
+                            <field name="caption"/>
+                        </group>
+                        <group string="Publish To">
+                            <field name="publish_tiktok"/>
+                            <field name="publish_facebook"/>
+                            <field name="publish_instagram"/>
+                            <field
+                                name="target_account_ids"
+                                widget="many2many_tags"
+                                options="{'no_create_edit': False}"
+                            />
+                            <field name="privacy_level" invisible="not publish_tiktok"/>
+                            <field name="video_public_url" invisible="not publish_instagram"/>
+                        </group>
                     </group>
-                    <group string="API Response">
+
+                    <group string="Publish Results">
+                        <group string="TikTok">
+                            <field name="tiktok_external_id" readonly="1"/>
+                            <field name="tiktok_error_message" readonly="1"/>
+                            <field name="tiktok_response_body" readonly="1"/>
+                        </group>
+                        <group string="Facebook">
+                            <field name="facebook_external_id" readonly="1"/>
+                            <field name="facebook_error_message" readonly="1"/>
+                            <field name="facebook_response_body" readonly="1"/>
+                        </group>
+                        <group string="Instagram">
+                            <field name="instagram_external_id" readonly="1"/>
+                            <field name="instagram_error_message" readonly="1"/>
+                            <field name="instagram_response_body" readonly="1"/>
+                        </group>
+                    </group>
+                    <group string="Summary">
                         <field name="external_id" readonly="1"/>
                         <field name="error_message" readonly="1"/>
                         <field name="response_body" readonly="1"/>
@@ -46,10 +79,11 @@
     </record>
 
     <record id="action_social_video_post" model="ir.actions.act_window">
-        <field name="name">Social Video Posts</field>
+        <field name="name">Video Publisher</field>
         <field name="res_model">social.video.post</field>
         <field name="view_mode">list,form</field>
     </record>
 
-    <menuitem id="menu_social_video_upload" name="Social Video Posts" parent="menu_tiktok_video_root" action="action_social_video_post" sequence="5"/>
+    <menuitem id="menu_social_video_root" name="Social Video" sequence="50"/>
+    <menuitem id="menu_social_video_upload" name="Video Publisher" parent="menu_social_video_root" action="action_social_video_post" sequence="5"/>
 </odoo>
