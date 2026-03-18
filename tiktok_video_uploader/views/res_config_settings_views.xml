@@ -38,13 +38,25 @@
                         <setting string="TikTok Upload Endpoint">
                             <field name="tiktok_upload_endpoint"/>
                         </setting>
+                        <setting string="Max Upload Size (MB)" help="Validation limit for uploaded video binary before API calls">
+                            <field name="max_video_size_mb"/>
+                        </setting>
                     </block>
 
                     <block title="Facebook API">
+                        <setting string="Meta OAuth Connect" help="Use OAuth once, then reuse Meta token for both Facebook and Instagram">
+                            <button name="action_meta_connect" type="object" string="Connect Facebook/Instagram" class="btn-primary"/>
+                        </setting>
+                        <setting string="Meta Access Token" help="Shared token from Meta OAuth callback">
+                            <field name="meta_access_token" password="True"/>
+                        </setting>
+                        <setting string="Meta User ID">
+                            <field name="meta_user_id"/>
+                        </setting>
                         <setting string="Facebook Page ID">
                             <field name="facebook_page_id"/>
                         </setting>
-                        <setting string="Facebook Access Token">
+                        <setting string="Facebook Access Token (Override)">
                             <field name="facebook_access_token" password="True"/>
                         </setting>
                         <setting string="Facebook Graph Endpoint">
@@ -56,11 +68,35 @@
                         <setting string="Instagram Business User ID">
                             <field name="instagram_user_id"/>
                         </setting>
-                        <setting string="Instagram Access Token">
+                        <setting string="Instagram Access Token (Override)">
                             <field name="instagram_access_token" password="True"/>
                         </setting>
                         <setting string="Instagram Graph Endpoint">
                             <field name="instagram_graph_endpoint"/>
+                        </setting>
+                    </block>
+
+                    <block title="Meta OAuth">
+                        <setting string="Meta App ID">
+                            <field name="meta_app_id"/>
+                        </setting>
+                        <setting string="Meta App Secret" help="Stored in system parameters">
+                            <field name="meta_app_secret" password="True"/>
+                        </setting>
+                        <setting string="Meta Redirect URI" help="Must match Meta app OAuth redirect URI exactly">
+                            <field name="meta_redirect_uri"/>
+                        </setting>
+                        <setting string="Meta OAuth Scopes">
+                            <field name="meta_scopes"/>
+                        </setting>
+                        <setting string="Meta Authorize Endpoint">
+                            <field name="meta_authorize_endpoint"/>
+                        </setting>
+                        <setting string="Meta Token Endpoint">
+                            <field name="meta_token_endpoint"/>
+                        </setting>
+                        <setting string="Meta Graph Endpoint">
+                            <field name="meta_graph_endpoint"/>
                         </setting>
                     </block>
                 </app>
