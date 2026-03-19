@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_social_publish_rule_tree" model="ir.ui.view">
+        <field name="name">social.publish.rule.tree</field>
+        <field name="model">social.publish.rule</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <field name="platform"/>
+                <field name="keyword"/>
+                <field name="priority"/>
+                <field name="company_id" optional="hide"/>
+                <field name="active"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_social_publish_rule_form" model="ir.ui.view">
+        <field name="name">social.publish.rule.form</field>
+        <field name="model">social.publish.rule</field>
+        <field name="arch" type="xml">
+            <form string="Publish Rule">
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="active"/>
+                        <field name="platform"/>
+                        <field name="company_id" groups="base.group_multi_company"/>
+                        <field name="priority"/>
+                        <field name="keyword"/>
+                        <field name="target_account_ids" widget="many2many_tags"/>
+                        <field name="notes"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_social_publish_rules" model="ir.actions.act_window">
+        <field name="name">Publish Rules</field>
+        <field name="res_model">social.publish.rule</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <menuitem id="menu_social_publish_rules" name="Publish Rules" parent="menu_social_video_root" action="action_social_publish_rules" sequence="15"/>
+</odoo>
