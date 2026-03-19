@@ -110,17 +110,9 @@
         <field name="name">social.video.post.search</field>
         <field name="model">social.video.post</field>
         <field name="arch" type="xml">
-            <search string="Search Social Posts">
+            <search>
                 <field name="name"/>
                 <field name="state"/>
-                <filter name="needs_approval" string="Needs Approval" domain="[('state', '=', 'in_review')]"/>
-                <filter name="scheduled" string="Scheduled" domain="[('state', '=', 'scheduled')]"/>
-                <filter name="failed" string="Failed" domain="[('state', '=', 'failed')]"/>
-                <filter name="dead_letter" string="Dead Letter" domain="[('state', '=', 'dead_letter')]"/>
-                <group expand="0" string="Group By">
-                    <filter name="group_state" string="State" context="{'group_by': 'state'}"/>
-                    <filter name="group_company" string="Company" context="{'group_by': 'company_id'}"/>
-                </group>
             </search>
         </field>
     </record>
