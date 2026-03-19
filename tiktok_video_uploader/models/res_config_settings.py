@@ -89,6 +89,11 @@ class ResConfigSettings(models.TransientModel):
         string='Meta User ID',
         config_parameter='tiktok_video_uploader.meta_user_id',
     )
+    enable_advanced_meta_overrides = fields.Boolean(
+        string='Enable Advanced Meta Overrides',
+        config_parameter='tiktok_video_uploader.enable_advanced_meta_overrides',
+        default=False,
+    )
     facebook_access_token = fields.Char(
         string='Facebook Access Token (Override)',
         config_parameter='tiktok_video_uploader.facebook_access_token',

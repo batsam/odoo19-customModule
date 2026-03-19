@@ -17,6 +17,9 @@
                         <setting string="Connect Facebook/Instagram">
                             <button name="action_meta_connect" type="object" string="Link Meta Account" class="btn-primary"/>
                         </setting>
+                        <setting string="Advanced Meta Overrides" help="Show separate Facebook/Instagram override fields and endpoints">
+                            <field name="enable_advanced_meta_overrides"/>
+                        </setting>
                     </block>
 
                     <block title="Developer: TikTok OAuth">
@@ -52,13 +55,7 @@
                         </setting>
                     </block>
 
-                    <block title="Developer: Facebook API">
-                        <setting string="Meta Access Token" help="Shared token from Meta OAuth callback">
-                            <field name="meta_access_token" password="True"/>
-                        </setting>
-                        <setting string="Meta User ID">
-                            <field name="meta_user_id"/>
-                        </setting>
+                    <block title="Developer: Facebook API (Advanced Override)" invisible="not enable_advanced_meta_overrides">
                         <setting string="Facebook Page ID">
                             <field name="facebook_page_id"/>
                         </setting>
@@ -70,7 +67,7 @@
                         </setting>
                     </block>
 
-                    <block title="Developer: Instagram API">
+                    <block title="Developer: Instagram API (Advanced Override)" invisible="not enable_advanced_meta_overrides">
                         <setting string="Instagram Business User ID">
                             <field name="instagram_user_id"/>
                         </setting>
@@ -83,6 +80,12 @@
                     </block>
 
                     <block title="Developer: Meta OAuth">
+                        <setting string="Meta Access Token" help="Shared token from Meta OAuth callback">
+                            <field name="meta_access_token" password="True"/>
+                        </setting>
+                        <setting string="Meta User ID">
+                            <field name="meta_user_id"/>
+                        </setting>
                         <setting string="Meta App ID">
                             <field name="meta_app_id"/>
                         </setting>
