@@ -7,7 +7,22 @@
         <field name="arch" type="xml">
             <xpath expr="//form" position="inside">
                 <app string="Social Video" name="tiktok_video_uploader" groups="base.group_system">
-                    <block title="TikTok OAuth">
+                    <block title="User Connections">
+                        <setting string="Connected Accounts" help="Manage multiple social accounts per platform">
+                            <button name="action_manage_social_accounts" type="object" string="Manage Connected Accounts" class="btn-secondary"/>
+                        </setting>
+                        <setting string="Connect TikTok Account">
+                            <button name="action_tiktok_connect" type="object" string="Link TikTok Account" class="btn-primary"/>
+                        </setting>
+                        <setting string="Connect Facebook/Instagram">
+                            <button name="action_meta_connect" type="object" string="Link Meta Account" class="btn-primary"/>
+                        </setting>
+                        <setting string="Advanced Meta Overrides" help="Show separate Facebook/Instagram override fields and endpoints">
+                            <field name="enable_advanced_meta_overrides"/>
+                        </setting>
+                    </block>
+
+                    <block title="Developer: TikTok OAuth">
                         <setting string="TikTok Client Key">
                             <field name="tiktok_client_key"/>
                         </setting>
@@ -26,25 +41,25 @@
                         <setting string="TikTok Token Endpoint">
                             <field name="tiktok_token_endpoint"/>
                         </setting>
-                        <setting string="One-click Connect" help="Starts OAuth login and stores access token automatically">
-                            <button name="action_tiktok_connect" type="object" string="Connect TikTok" class="btn-primary"/>
-                        </setting>
                     </block>
 
-                    <block title="TikTok API">
+                    <block title="Developer: TikTok API">
                         <setting string="TikTok Access Token" help="OAuth access token with video publish permission">
                             <field name="tiktok_access_token" password="True"/>
                         </setting>
                         <setting string="TikTok Upload Endpoint">
                             <field name="tiktok_upload_endpoint"/>
                         </setting>
+                        <setting string="Max Upload Size (MB)" help="Validation limit for uploaded video binary before API calls">
+                            <field name="max_video_size_mb"/>
+                        </setting>
                     </block>
 
-                    <block title="Facebook API">
+                    <block title="Developer: Facebook API (Advanced Override)" invisible="not enable_advanced_meta_overrides">
                         <setting string="Facebook Page ID">
                             <field name="facebook_page_id"/>
                         </setting>
-                        <setting string="Facebook Access Token">
+                        <setting string="Facebook Access Token (Override)">
                             <field name="facebook_access_token" password="True"/>
                         </setting>
                         <setting string="Facebook Graph Endpoint">
@@ -52,15 +67,45 @@
                         </setting>
                     </block>
 
-                    <block title="Instagram API">
+                    <block title="Developer: Instagram API (Advanced Override)" invisible="not enable_advanced_meta_overrides">
                         <setting string="Instagram Business User ID">
                             <field name="instagram_user_id"/>
                         </setting>
-                        <setting string="Instagram Access Token">
+                        <setting string="Instagram Access Token (Override)">
                             <field name="instagram_access_token" password="True"/>
                         </setting>
                         <setting string="Instagram Graph Endpoint">
                             <field name="instagram_graph_endpoint"/>
+                        </setting>
+                    </block>
+
+                    <block title="Developer: Meta OAuth">
+                        <setting string="Meta Access Token" help="Shared token from Meta OAuth callback">
+                            <field name="meta_access_token" password="True"/>
+                        </setting>
+                        <setting string="Meta User ID">
+                            <field name="meta_user_id"/>
+                        </setting>
+                        <setting string="Meta App ID">
+                            <field name="meta_app_id"/>
+                        </setting>
+                        <setting string="Meta App Secret" help="Stored in system parameters">
+                            <field name="meta_app_secret" password="True"/>
+                        </setting>
+                        <setting string="Meta Redirect URI" help="Must match Meta app OAuth redirect URI exactly">
+                            <field name="meta_redirect_uri"/>
+                        </setting>
+                        <setting string="Meta OAuth Scopes">
+                            <field name="meta_scopes"/>
+                        </setting>
+                        <setting string="Meta Authorize Endpoint">
+                            <field name="meta_authorize_endpoint"/>
+                        </setting>
+                        <setting string="Meta Token Endpoint">
+                            <field name="meta_token_endpoint"/>
+                        </setting>
+                        <setting string="Meta Graph Endpoint">
+                            <field name="meta_graph_endpoint"/>
                         </setting>
                     </block>
                 </app>
