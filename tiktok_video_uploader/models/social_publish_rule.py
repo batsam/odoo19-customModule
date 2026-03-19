@@ -9,6 +9,7 @@ class SocialPublishRule(models.Model):
     name = fields.Char(required=True)
     active = fields.Boolean(default=True)
     priority = fields.Integer(default=10)
+    company_id = fields.Many2one('res.company', default=lambda self: self.env.company, required=True, index=True)
     platform = fields.Selection(
         [('tiktok', 'TikTok'), ('facebook', 'Facebook'), ('instagram', 'Instagram')],
         required=True,

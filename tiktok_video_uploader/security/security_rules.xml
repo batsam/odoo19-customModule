@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="social_video_post_company_rule" model="ir.rule">
+        <field name="name">Social Video Post: Company</field>
+        <field name="model_id" ref="model_social_video_post"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+        <field name="groups" eval="[(4, ref('tiktok_video_uploader.group_social_publisher'))]"/>
+    </record>
+
+    <record id="social_media_account_company_rule" model="ir.rule">
+        <field name="name">Social Media Account: Company</field>
+        <field name="model_id" ref="model_social_media_account"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+        <field name="groups" eval="[(4, ref('tiktok_video_uploader.group_social_publisher'))]"/>
+    </record>
+
+    <record id="social_publish_rule_company_rule" model="ir.rule">
+        <field name="name">Social Publish Rule: Company</field>
+        <field name="model_id" ref="model_social_publish_rule"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+        <field name="groups" eval="[(4, ref('tiktok_video_uploader.group_social_publisher'))]"/>
+    </record>
+</odoo>

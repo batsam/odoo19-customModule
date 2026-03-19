@@ -28,10 +28,10 @@
                         <field name="active"/>
                     </group>
                     <group string="Tokens">
-                        <field name="access_token" password="True"/>
-                        <field name="refresh_token" password="True"/>
-                        <field name="token_expire_at"/>
-                        <field name="scope"/>
+                        <field name="access_token" password="True" groups="tiktok_video_uploader.group_social_admin"/>
+                        <field name="refresh_token" password="True" groups="tiktok_video_uploader.group_social_admin"/>
+                        <field name="token_expire_at" groups="tiktok_video_uploader.group_social_admin"/>
+                        <field name="scope" groups="tiktok_video_uploader.group_social_admin"/>
                     </group>
                     <group string="Notes">
                         <field name="notes"/>

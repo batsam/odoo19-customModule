@@ -15,6 +15,7 @@ class SocialVideoPost(models.Model):
     _inherit = ['mail.thread', 'mail.activity.mixin']
 
     name = fields.Char(required=True, default='New', tracking=True)
+    company_id = fields.Many2one('res.company', default=lambda self: self.env.company, required=True, index=True)
     platform = fields.Selection(  # legacy field kept for backward compatibility
         [('tiktok', 'TikTok'), ('facebook', 'Facebook'), ('instagram', 'Instagram')],
         default='tiktok',

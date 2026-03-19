@@ -6,6 +6,7 @@
         <field name="arch" type="xml">
             <list>
                 <field name="name"/>
+                <field name="company_id" optional="hide"/>
                 <field name="publish_tiktok"/>
                 <field name="publish_facebook"/>
                 <field name="publish_instagram"/>
@@ -44,6 +45,7 @@
                     <group string="Video Content">
                         <group>
                             <field name="name" readonly="1"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
                             <field name="video_file" filename="video_filename"/>
                             <field name="video_filename"/>
                             <field name="caption"/>
@@ -104,10 +106,33 @@
         </field>
     </record>
 
+    <record id="view_social_video_post_search" model="ir.ui.view">
+        <field name="name">social.video.post.search</field>
+        <field name="model">social.video.post</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="caption"/>
+                <field name="state"/>
+                <field name="scheduled_datetime"/>
+                <filter name="needs_approval" string="Needs Approval" domain="[('state', '=', 'in_review')]"/>
+                <filter name="due_now" string="Due Now" domain="[('state', '=', 'scheduled'), ('scheduled_datetime', '&lt;=', context_today())]"/>
+                <filter name="failed" string="Failed" domain="[('state', '=', 'failed')]"/>
+                <filter name="dead_letter" string="Dead Letter" domain="[('state', '=', 'dead_letter')]"/>
+                <group expand="0" string="Group By">
+                    <filter name="group_state" string="State" context="{'group_by': 'state'}"/>
+                    <filter name="group_platform_tiktok" string="TikTok Enabled" domain="[('publish_tiktok', '=', True)]"/>
+                    <filter name="group_company" string="Company" context="{'group_by': 'company_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
     <record id="action_social_video_post" model="ir.actions.act_window">
         <field name="name">Video Publisher</field>
         <field name="res_model">social.video.post</field>
         <field name="view_mode">list,calendar,form</field>
+        <field name="search_view_id" ref="view_social_video_post_search"/>
     </record>
 
     <menuitem id="menu_social_video_root" name="Social Video" sequence="50"/>

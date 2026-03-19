@@ -9,6 +9,7 @@
                 <field name="platform"/>
                 <field name="keyword"/>
                 <field name="priority"/>
+                <field name="company_id" optional="hide"/>
                 <field name="active"/>
             </list>
         </field>
@@ -24,6 +25,7 @@
                         <field name="name"/>
                         <field name="active"/>
                         <field name="platform"/>
+                        <field name="company_id" groups="base.group_multi_company"/>
                         <field name="priority"/>
                         <field name="keyword"/>
                         <field name="target_account_ids" widget="many2many_tags"/>
