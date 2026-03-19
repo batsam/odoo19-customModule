@@ -116,12 +116,11 @@
                 <field name="state"/>
                 <field name="scheduled_datetime"/>
                 <filter name="needs_approval" string="Needs Approval" domain="[('state', '=', 'in_review')]"/>
-                <filter name="due_now" string="Due Now" domain="[('state', '=', 'scheduled'), ('scheduled_datetime', '&lt;=', context_today())]"/>
+                <filter name="due_now" string="Scheduled" domain="[('state', '=', 'scheduled'), ('scheduled_datetime', '!=', False)]"/>
                 <filter name="failed" string="Failed" domain="[('state', '=', 'failed')]"/>
                 <filter name="dead_letter" string="Dead Letter" domain="[('state', '=', 'dead_letter')]"/>
                 <group expand="0" string="Group By">
                     <filter name="group_state" string="State" context="{'group_by': 'state'}"/>
-                    <filter name="group_platform_tiktok" string="TikTok Enabled" domain="[('publish_tiktok', '=', True)]"/>
                     <filter name="group_company" string="Company" context="{'group_by': 'company_id'}"/>
                 </group>
             </search>
