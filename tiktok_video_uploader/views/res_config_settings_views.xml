@@ -6,7 +6,7 @@
         <field name="inherit_id" ref="base.res_config_settings_view_form"/>
         <field name="arch" type="xml">
             <xpath expr="//form" position="inside">
-                <app string="Social Video" name="tiktok_video_uploader" groups="base.group_system">
+                <app string="Social Video" name="tiktok_video_uploader">
                     <block title="User Connections">
                         <setting string="Connected Accounts" help="Manage multiple social accounts per platform">
                             <button name="action_manage_social_accounts" type="object" string="Manage Connected Accounts" class="btn-secondary"/>
