@@ -5,7 +5,7 @@ access_social_video_post_admin,social.video.post admin,model_social_video_post,t
 access_social_video_post_base_user,social.video.post base user,model_social_video_post,base.group_user,1,0,0,0
 access_social_media_account_publisher,social.media.account publisher,model_social_media_account,tiktok_video_uploader.group_social_publisher,1,0,0,0
 access_social_media_account_admin,social.media.account admin,model_social_media_account,tiktok_video_uploader.group_social_admin,1,1,1,1
-access_social_media_account_base_user,social.media.account base user,model_social_media_account,base.group_user,1,0,0,0
+access_social_media_account_base_user,social.media.account base user,model_social_media_account,base.group_user,0,0,0,0
 access_social_publish_rule_publisher,social.publish.rule publisher,model_social_publish_rule,tiktok_video_uploader.group_social_publisher,1,0,0,0
 access_social_publish_rule_admin,social.publish.rule admin,model_social_publish_rule,tiktok_video_uploader.group_social_admin,1,1,1,1
 access_social_publish_rule_base_user,social.publish.rule base user,model_social_publish_rule,base.group_user,1,0,0,0
