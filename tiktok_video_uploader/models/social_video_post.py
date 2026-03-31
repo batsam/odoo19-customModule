@@ -105,6 +105,15 @@ class SocialVideoPost(models.Model):
                 vals['name'] = self.env['ir.sequence'].next_by_code('social.video.post') or 'New'
         return super().create(vals_list)
 
+    def write(self, vals):
+        target_state = vals.get('state')
+        if target_state in {'approved', 'rejected'} and not self.env.su:
+            if not self.env.user.has_group('tiktok_video_uploader.group_social_approver') and not self.env.user.has_group(
+                'tiktok_video_uploader.group_social_admin'
+            ):
+                raise UserError(_('Only Social Approver or Social Admin can set posts to Approved or Rejected.'))
+        return super().write(vals)
+
     def action_publish(self):
         self.ensure_one()
         if self.requires_approval and self.state in ('draft', 'in_review', 'rejected'):
@@ -165,11 +174,19 @@ class SocialVideoPost(models.Model):
         return self._success_notification(_('Post submitted for review.'))
 
     def action_approve(self):
+        if not self.env.user.has_group('tiktok_video_uploader.group_social_approver') and not self.env.user.has_group(
+            'tiktok_video_uploader.group_social_admin'
+        ):
+            raise UserError(_('Only Social Approver or Social Admin can approve posts.'))
         for record in self:
             record.write({'state': 'approved'})
         return self._success_notification(_('Post approved.'))
 
     def action_reject(self):
+        if not self.env.user.has_group('tiktok_video_uploader.group_social_approver') and not self.env.user.has_group(
+            'tiktok_video_uploader.group_social_admin'
+        ):
+            raise UserError(_('Only Social Approver or Social Admin can reject posts.'))
         for record in self:
             record.write({'state': 'rejected'})
         return self._success_notification(_('Post rejected.'))

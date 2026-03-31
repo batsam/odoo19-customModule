@@ -1,127 +1,117 @@
-# Code Review: `tiktok_video_uploader`
+# Code Review: `tiktok_video_uploader` (Odoo 19)
 
 ## Scope
-Reviewed module manifest, models, controllers, security ACLs, XML views, and sequence data.
+Reviewed module manifest, models, controllers, security groups/rules, ACLs, and views for production-readiness with focus on **feature** and **security** recommendations.
 
-## Issues Found
+---
 
-### 1) [High] OAuth state is global and can be overwritten between users
+## 1) Security Findings
+
+### [High] Approval workflow can be bypassed by any publisher with write access
+**Where:** `models/social_video_post.py`, `security/ir.model.access.csv`
+
+- `action_approve()` and `action_reject()` do not enforce group checks.
+- `group_social_publisher` has write permission on `social.video.post`.
+- Result: publisher-level users can approve/reject by calling object methods directly (RPC), bypassing intended separation of duties.
+
+**Recommendation**
+- Enforce role-based checks inside methods (`has_group`) for approve/reject actions.
+- Keep UI button visibility restrictions, but do not rely on UI alone.
+- Optionally split state transitions into server-side guarded methods only.
+
+---
+
+### [High] Access tokens are stored in plain `Char` fields and readable by broad model readers
+**Where:** `models/social_media_account.py`, `views/social_media_account_views.xml`, `security/ir.model.access.csv`
+
+- `access_token` / `refresh_token` are regular fields on `social.media.account`.
+- If non-admin users can read account records, secrets exposure risk increases.
+
+**Recommendation**
+- Restrict read access on `social.media.account` to admin/manager groups only.
+- Move long-lived secrets to `ir.config_parameter` (sudo-only access), and keep account model token-light when possible.
+- Hide token fields from non-admin groups in forms and lists.
+
+---
+
+### [Medium] OAuth callback endpoints are public and return raw exception text
 **Where:** `controllers/main.py`
 
-- `oauth_state` is stored in a single system parameter (`ir.config_parameter`), not user/session scoped.
-- If two users start OAuth close together, the second login overwrites the state used by the first, causing false failures and opening the door to state confusion.
+- Public callbacks are normal for OAuth, but responses currently expose raw exception messages.
+- This can leak internals during failures.
 
 **Recommendation**
-- Store `state` in the HTTP session (`request.session`) or per-user transient storage.
-- Clear consumed state after successful callback.
+- Return generic user-facing error messages.
+- Log detailed exceptions server-side (`_logger.exception`) with sanitized context.
 
 ---
 
-### 2) [High] Internal users have full read access to API responses and errors
-**Where:** `security/ir.model.access.csv`, `models/*.py`, views
+### [Medium] Sensitive API response payloads are stored and visible in business records
+**Where:** `models/social_video_post.py`, `views/social_video_post_views.xml`
 
-- ACL grants full CRUD to `base.group_user` for both upload models.
-- `response_body`/`error_message` may contain API error payloads and implementation details.
-- Tokens are not written to these fields directly, but external payloads can still leak sensitive metadata.
+- Full response/error bodies are persisted and shown in form view.
+- External payloads can include IDs, internal error traces, and integration metadata.
 
 **Recommendation**
-- Restrict module usage to a dedicated manager/editor group.
-- Make deletion (`perm_unlink`) limited to admin-level users.
-- Consider hiding or sanitizing `response_body` for non-admin users.
+- Keep normalized fields (`external_id`, platform status, error code/message).
+- Gate raw payload fields behind admin-only group or a debug flag.
 
 ---
 
-### 3) [Medium] Duplicate TikTok upload logic in two models
-**Where:** `models/tiktok_video_upload.py` and `models/social_video_post.py`
+## 2) Feature Recommendations
 
-- TikTok init+upload flow appears in both models with near-identical code.
-- This increases maintenance burden and risk of behavior drift.
+### Priority: High
+1. **Platform-specific approval policy**  
+   Add configurable approval matrix by platform/account (e.g., TikTok needs approval, Facebook doesn’t).
 
-**Recommendation**
-- Extract shared TikTok client/service methods into a reusable abstract model or helper mixin.
+2. **Retry policy controls per platform**  
+   Today retry/backoff is global per post. Add platform-level retry counters and limits to avoid one failed platform blocking success analytics.
 
----
+3. **Operational dashboard**  
+   Add kanban + pivots for states (`scheduled`, `partial`, `failed`, `dead_letter`) with filters by company/platform/account.
 
-### 4) [Medium] No input validation for uploaded file content/size
-**Where:** `models/tiktok_video_upload.py`, `models/social_video_post.py`
+### Priority: Medium
+4. **Asynchronous publish queue**  
+   Offload API calls to queue/cron job records to avoid long synchronous requests from form actions.
 
-- Binary payload is decoded and sent without validating size, extension, or MIME expectations.
-- Large uploads can cause memory pressure and poor UX due to long synchronous requests.
+5. **Preflight validation**  
+   Add validation per platform before publish: caption length, media URL accessibility, allowed mime/codec, privacy constraints.
 
-**Recommendation**
-- Validate max size and basic file type before API call.
-- Add user-facing constraint errors for unsupported files.
+6. **Post-publish audit trail**  
+   Track per-platform timeline entries (queued, sent, acknowledged, failed, retried).
 
----
+### Priority: Low
+7. **Template library for captions/hashtags**  
+   Reusable caption templates with variables and company branding defaults.
 
-### 5) [Medium] No refresh-token lifecycle handling
-**Where:** `controllers/main.py`, `models/res_config_settings.py`
-
-- Callback stores `refresh_token` and `access_token_expire_at` but publish methods never refresh token when expired.
-- Upload failures will occur after token expiration unless manually reconnected.
-
-**Recommendation**
-- Implement token refresh service with automatic refresh-before-upload and fallback to reconnect flow.
+8. **Rule simulation mode**  
+   “Test routing rule” action to preview which accounts a post will target before publish.
 
 ---
 
-### 6) [Low] Blocking external API calls inside request thread
-**Where:** publish/upload methods in model classes
+## 3) Architecture / Maintainability Recommendations
 
-- Calls use long timeouts (120–300s) and run synchronously in UI action.
-- This can block workers and degrade responsiveness.
-
-**Recommendation**
-- Move uploads to queue jobs/cron workers and surface progress via state tracking.
-
----
-
-### 7) [Low] Raw external response persisted without normalization
-**Where:** `_mark_uploaded`, exception handling
-
-- Entire JSON or raw text is saved in `response_body`.
-- Useful for debugging, but noisy and not structured for reporting.
-
-**Recommendation**
-- Persist key fields (`external_id`, `status`, `error_code`, `error_message`) and keep full payload optional behind debug mode.
+1. **Extract shared API client services** (TikTok + Meta helpers) into reusable service classes/mixins to avoid drift.
+2. **Add centralized exception normalization** for HTTP/API errors to standardize UX and logs.
+3. **Add automated tests** for:
+   - Approval authorization checks
+   - Retry transitions (`failed -> dead_letter`)
+   - Rule matching precedence
+   - Multi-company isolation
 
 ---
 
-## Suggested Refactor (example)
+## 4) Suggested Implementation Order
 
-### A) Session-safe OAuth state handling (controller)
-```python
-# controllers/main.py (example)
-state = secrets.token_urlsafe(24)
-request.session['tiktok_oauth_state'] = state
+1. Fix approval authorization checks (**Security High**).  
+2. Tighten token/data visibility ACLs (**Security High**).  
+3. Add sanitized logging + generic callback responses (**Security Medium**).  
+4. Add async queue execution path (**Feature High/Medium**).  
+5. Add reporting/dashboard and routing simulation (**Feature Medium/Low**).
 
-expected_state = request.session.get('tiktok_oauth_state')
-if not expected_state or expected_state != state:
-    return request.make_response('Invalid OAuth state', status=400)
-request.session.pop('tiktok_oauth_state', None)
-```
+---
 
-### B) Shared TikTok upload helper (service-style)
-```python
-class TikTokApiMixin(models.AbstractModel):
-    _name = 'tiktok.api.mixin'
-    _description = 'TikTok API Shared Helpers'
+## 5) Notes
 
-    def _tiktok_init_and_upload(self, video_bytes, title, privacy_level):
-        # centralize endpoint/headers/payload/error normalization
-        # return (external_id, response_payload)
-        ...
-```
-
-### C) Safer ACL split (example)
-- Create groups:
-  - `group_social_video_user` (read/create/write own records)
-  - `group_social_video_manager` (full access + settings)
-- Restrict unlink and sensitive response fields to manager group.
-
-## Priority Fix Order
-1. OAuth state hardening (High)
-2. ACL tightening + field visibility controls (High)
-3. Token refresh lifecycle (Medium)
-4. Shared TikTok service refactor (Medium)
-5. File validation and async execution path (Medium/Low)
+- The recent Odoo 19 group migration to `res.groups.privilege` is directionally correct.
+- Next hardening phase should focus on **authorization enforcement in methods** and **secret visibility boundaries**.
