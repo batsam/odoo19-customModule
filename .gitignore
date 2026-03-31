@@ -1,40 +1,32 @@
-# Python bytecode and caches
+```
+# Python
 __pycache__/
-*.py[cod]
+*.pyc
 *.pyo
 *.pyd
-*.so
-.pytest_cache/
-.mypy_cache/
-.coverage
-htmlcov/
 
-# Virtual environments
-venv/
+# Dependencies
 .venv/
+venv/
 env/
+requirements.txt.bak
 
-# Odoo/local runtime files
+# Logs and temp files
 *.log
-logs/
-*.pid
+*.tmp
+*.swp
 
-# Local config and secrets
+# Environment
 .env
-.env.*
-*.secret
-*.key
-*.pem
-odoo.conf
-config/*.conf
+.env.local
+*.env.*
 
-# IDE/editor files
+# Editors
 .vscode/
 .idea/
-*.swp
-.DS_Store
 
-# Build/package artifacts
+# Build artifacts
 dist/
 build/
 *.egg-info/
+```
