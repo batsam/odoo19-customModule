@@ -6,7 +6,7 @@
         <field name="inherit_id" ref="base.res_config_settings_view_form"/>
         <field name="arch" type="xml">
             <xpath expr="//form" position="inside">
-                <app string="TikTok" name="tiktok_video_uploader" groups="base.group_system">
+                <app string="TikTok" name="tiktok_video_uploader">
                     <block title="TikTok API">
                         <setting string="TikTok Access Token" help="OAuth access token with video publish permission">
                             <field name="tiktok_access_token" password="True"/>
