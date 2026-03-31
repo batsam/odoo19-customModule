@@ -53,6 +53,7 @@
         name="Connected Accounts"
         parent="menu_social_video_root"
         action="action_social_media_accounts"
+        groups="tiktok_video_uploader.group_social_admin"
         sequence="10"
     />
 </odoo>
