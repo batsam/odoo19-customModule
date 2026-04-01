@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_social_account_setup_wizard_form" model="ir.ui.view">
+        <field name="name">social.account.setup.wizard.form</field>
+        <field name="model">social.account.setup.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Social Credential Quick Setup">
+                <sheet>
+                    <group>
+                        <field name="provider"/>
+                        <field name="company_id" groups="base.group_multi_company"/>
+                        <field name="account_id"/>
+                    </group>
+                    <group>
+                        <field name="raw_payload" placeholder='Paste JSON or key/value lines, e.g. {"app_id":"...","app_secret":"..."}'/>
+                    </group>
+                    <group string="Detected Credentials">
+                        <field name="line_ids" nolabel="1">
+                            <list editable="bottom">
+                                <field name="apply"/>
+                                <field name="source_key" readonly="1"/>
+                                <field name="target_field"/>
+                                <field name="confidence" readonly="1"/>
+                                <field name="detected_value" password="True"/>
+                            </list>
+                        </field>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_parse_payload" string="Parse Payload" type="object" class="btn-secondary"/>
+                    <button name="action_apply_credentials" string="Apply to Account" type="object" class="btn-primary"/>
+                    <button string="Close" special="cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_social_account_setup_wizard" model="ir.actions.act_window">
+        <field name="name">Social Quick Setup</field>
+        <field name="res_model">social.account.setup.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>
