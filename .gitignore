@@ -38,6 +38,10 @@ htmlcov/
 *.bak
 *.old
 
+# Other
+ss_enterprise_theme/
+test_module/
+
 # OS generated files
 .DS_Store
 Thumbs.db
