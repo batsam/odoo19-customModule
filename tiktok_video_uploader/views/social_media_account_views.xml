@@ -7,6 +7,7 @@
             <list>
                 <field name="name"/>
                 <field name="platform"/>
+                <field name="state"/>
                 <field name="external_account_id"/>
                 <field name="company_id"/>
                 <field name="active"/>
@@ -19,6 +20,10 @@
         <field name="model">social.media.account</field>
         <field name="arch" type="xml">
             <form string="Connected Social Account">
+                <header>
+                    <button name="action_open_setup_wizard" type="object" string="Quick Setup (Paste)" class="btn-primary" groups="tiktok_video_uploader.group_social_admin"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,configured,validated,failed"/>
+                </header>
                 <sheet>
                     <group>
                         <field name="name"/>
@@ -27,11 +32,25 @@
                         <field name="company_id" groups="base.group_multi_company"/>
                         <field name="active"/>
                     </group>
-                    <group string="Tokens">
+                    <group string="Credentials (Admin only)">
                         <field name="access_token" password="True" groups="tiktok_video_uploader.group_social_admin"/>
                         <field name="refresh_token" password="True" groups="tiktok_video_uploader.group_social_admin"/>
+                        <field name="app_id" groups="tiktok_video_uploader.group_social_admin"/>
+                        <field name="app_secret" password="True" groups="tiktok_video_uploader.group_social_admin"/>
+                        <field name="client_id" groups="tiktok_video_uploader.group_social_admin"/>
+                        <field name="client_secret" password="True" groups="tiktok_video_uploader.group_social_admin"/>
                         <field name="token_expire_at" groups="tiktok_video_uploader.group_social_admin"/>
+                        <field name="token_expires_at" groups="tiktok_video_uploader.group_social_admin"/>
                         <field name="scope" groups="tiktok_video_uploader.group_social_admin"/>
+                    </group>
+                    <group string="Provider IDs">
+                        <field name="business_id"/>
+                        <field name="ad_account_id"/>
+                        <field name="pixel_id"/>
+                    </group>
+                    <group string="Monitoring">
+                        <field name="last_validated_at"/>
+                        <field name="last_error_message"/>
                     </group>
                     <group string="Notes">
                         <field name="notes"/>

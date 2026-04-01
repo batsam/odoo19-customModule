@@ -11,6 +11,9 @@
                         <setting string="Connected Accounts" help="Manage multiple social accounts per platform">
                             <button name="action_manage_social_accounts" type="object" string="Manage Connected Accounts" class="btn-secondary"/>
                         </setting>
+                        <setting string="Quick Setup Wizard" help="Paste credentials from provider portal and auto-map fields">
+                            <button name="action_open_social_quick_setup" type="object" string="Open Quick Setup" class="btn-primary"/>
+                        </setting>
                         <setting string="Connect TikTok Account">
                             <button name="action_tiktok_connect" type="object" string="Link TikTok Account" class="btn-primary"/>
                         </setting>

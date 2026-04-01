@@ -11,3 +11,5 @@ access_social_publish_rule_admin,social.publish.rule admin,model_social_publish_
 access_social_publish_rule_base_user,social.publish.rule base user,model_social_publish_rule,base.group_user,1,0,0,0
 access_tiktok_video_upload_admin,tiktok.video.upload admin,model_tiktok_video_upload,tiktok_video_uploader.group_social_admin,1,1,1,1
 access_tiktok_video_upload_base_user,tiktok.video.upload base user,model_tiktok_video_upload,base.group_user,1,0,0,0
+access_social_account_setup_wizard_admin,social.account.setup.wizard admin,model_social_account_setup_wizard,tiktok_video_uploader.group_social_admin,1,1,1,1
+access_social_account_setup_wizard_line_admin,social.account.setup.wizard.line admin,model_social_account_setup_wizard_line,tiktok_video_uploader.group_social_admin,1,1,1,1
