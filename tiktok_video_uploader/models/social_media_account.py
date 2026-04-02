@@ -21,6 +21,22 @@ class SocialMediaAccount(models.Model):
     company_id = fields.Many2one('res.company', default=lambda self: self.env.company, required=True)
     notes = fields.Text()
 
+    state = fields.Selection(
+        [('draft', 'Draft'), ('configured', 'Configured'), ('validated', 'Validated'), ('failed', 'Failed')],
+        default='draft',
+        tracking=True,
+    )
+    last_validated_at = fields.Datetime(tracking=True)
+    last_error_message = fields.Text()
+    token_expires_at = fields.Datetime()
+    app_id = fields.Char(groups='tiktok_video_uploader.group_social_admin')
+    app_secret = fields.Char(groups='tiktok_video_uploader.group_social_admin')
+    client_id = fields.Char(groups='tiktok_video_uploader.group_social_admin')
+    client_secret = fields.Char(groups='tiktok_video_uploader.group_social_admin')
+    business_id = fields.Char()
+    ad_account_id = fields.Char()
+    pixel_id = fields.Char()
+
     _sql_constraints = [
         (
             'social_account_platform_external_uniq',
@@ -41,3 +57,19 @@ class SocialMediaAccount(models.Model):
             account.write(vals)
             return account
         return self.create(vals)
+
+    def action_open_setup_wizard(self):
+        self.ensure_one()
+        provider = 'meta' if self.platform in ('facebook', 'instagram') else 'tiktok'
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Setup Credentials',
+            'res_model': 'social.account.setup.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {
+                'default_provider': provider,
+                'default_account_id': self.id,
+                'default_company_id': self.company_id.id,
+            },
+        }

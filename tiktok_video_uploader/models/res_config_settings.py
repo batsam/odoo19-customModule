@@ -150,3 +150,14 @@ class ResConfigSettings(models.TransientModel):
             'view_mode': 'list,form',
             'target': 'current',
         }
+
+    def action_open_social_quick_setup(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Social Quick Setup',
+            'res_model': 'social.account.setup.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {'default_company_id': self.env.company.id},
+        }
