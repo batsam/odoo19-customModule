@@ -51,30 +51,28 @@ class CredentialParser:
         return pairs
 
     @classmethod
-    def normalize_for_provider(cls, parsed_values, provider):
-        aliases = cls._provider_aliases(provider)
-        normalized = {}
-        for source_key, value in parsed_values.items():
-            alias_key = source_key.lower().replace('-', '_').replace('.', '_')
-            target_field = aliases.get(alias_key)
-            if target_field:
-                normalized[target_field] = value
-        return normalized
-
-    @classmethod
     def build_preview(cls, parsed_values, provider):
         aliases = cls._provider_aliases(provider)
         lines = []
         for source_key, value in parsed_values.items():
             alias_key = source_key.lower().replace('-', '_').replace('.', '_')
             target_field = aliases.get(alias_key, False)
-            confidence = 'high' if source_key.lower() in aliases else 'medium' if target_field else 'low'
+            if source_key.lower() in aliases:
+                confidence = 'high'
+                note = 'Exact key matched'
+            elif target_field:
+                confidence = 'medium'
+                note = f'Alias matched ({source_key} → {target_field})'
+            else:
+                confidence = 'low'
+                note = 'Unrecognized key, map manually or ignore'
             lines.append(
                 {
                     'source_key': source_key,
                     'target_field': target_field or '',
                     'detected_value': value,
                     'confidence': confidence,
+                    'note': note,
                     'apply': bool(target_field),
                 }
             )
@@ -90,6 +88,8 @@ class CredentialParser:
                 'app_secret': 'app_secret',
                 'facebook_app_secret': 'app_secret',
                 'meta_app_secret': 'app_secret',
+                'client_id': 'client_id',
+                'client_secret': 'client_secret',
                 'access_token': 'access_token',
                 'token': 'access_token',
                 'long_lived_token': 'access_token',
